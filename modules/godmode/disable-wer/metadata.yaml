@@ -1,0 +1,9 @@
+id: disable-wer
+title: "Disable Windows Error Reporting"
+layer: godmode
+severity: high
+reversible: yes
+summary: "Disables Windows Error Reporting (WER) service. Error reports will not be sent to Microsoft. Crash dumps and error logs will not be automatically collected. This reduces background activity and network traffic."
+whatChanges: "Stops and disables the WerSvc service and disables WER via registry policy."
+riskLevel: high
+previewCommand: "Get-Service WerSvc | Select-Object Name, Status, StartType"

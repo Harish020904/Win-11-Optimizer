@@ -1,0 +1,10 @@
+# Win11 Optimizer - Moderate Layer Manifest
+# Risk Level: Low-Medium | Reversible: Mostly
+
+name: "Moderate"
+description: "Optimize Windows as a developer or workstation environment. Service tuning, scheduled task cleanup, removal of consumer applications."
+layer: moderate
+riskLevel: low
+
+modules:
+  - disable-xbox-services

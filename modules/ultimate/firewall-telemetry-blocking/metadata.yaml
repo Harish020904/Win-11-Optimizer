@@ -1,0 +1,9 @@
+id: firewall-telemetry-blocking
+title: "Firewall Telemetry Endpoint Blocking"
+layer: ultimate
+severity: medium
+reversible: yes
+summary: "Blocks known Microsoft telemetry endpoints via Windows Firewall. This prevents diagnostic data from being sent to Microsoft servers while maintaining system functionality. May affect some Microsoft services temporarily."
+whatChanges: "Adds outbound firewall rules to block known telemetry endpoints (vortex-win.data.microsoft.com, etc.)."
+riskLevel: medium
+previewCommand: "Get-NetFirewallRule | Where-Object {$_.DisplayName -like '*telemetry*'}"

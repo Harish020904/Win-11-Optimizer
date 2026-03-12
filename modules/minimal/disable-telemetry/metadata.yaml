@@ -1,0 +1,9 @@
+id: disable-telemetry
+title: "Disable Diagnostic Telemetry"
+layer: minimal
+severity: low
+reversible: yes
+summary: "Disables Windows diagnostic telemetry services and data collection. This stops Microsoft from collecting usage data, error reports, and diagnostic information. Your system will remain fully functional and secure."
+whatChanges: "Stops and disables DiagTrack (Diagnostic Tracking Service) and dmwappushservice services. Sets telemetry policy to minimal."
+riskLevel: low
+previewCommand: "Get-Service DiagTrack | Select-Object Name, Status, StartType"

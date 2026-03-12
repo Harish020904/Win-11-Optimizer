@@ -1,0 +1,11 @@
+# Win11 Optimizer - Minimal Layer Manifest
+# Risk Level: Low | Reversible: Yes
+
+name: "Minimal"
+description: "Reduce unnecessary UI features, telemetry, and background activity without affecting system functionality."
+layer: minimal
+riskLevel: low
+
+modules:
+  - disable-telemetry
+  - disable-widgets

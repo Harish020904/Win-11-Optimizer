@@ -1,0 +1,10 @@
+# Win11 Optimizer - Ultimate Layer Manifest
+# Risk Level: Medium | Reversible: Partially
+
+name: "Ultimate"
+description: "Enterprise workstation hardening and deeper system optimization. Policy-level telemetry restrictions, firewall blocking, AppX cleanup."
+layer: ultimate
+riskLevel: medium
+
+modules:
+  - firewall-telemetry-blocking

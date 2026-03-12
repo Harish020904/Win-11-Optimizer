@@ -1,0 +1,5 @@
+version: "1.0.0"
+name: "Win11 Optimizer"
+description: "Production-grade Windows 11 optimization framework"
+maintainer: "Win11 Optimizer Team"
+license: "MIT"

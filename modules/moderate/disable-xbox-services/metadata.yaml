@@ -1,0 +1,9 @@
+id: disable-xbox-services
+title: "Disable Xbox Services"
+layer: moderate
+severity: low
+reversible: yes
+summary: "Disables Xbox-related background services if you don't use Xbox features or gaming on this PC. This reduces memory usage and background network activity. Xbox games and features will not work after applying."
+whatChanges: "Sets Xbox services (XboxNetApiSvc, XboxGipSvc, XblAuthManager, XblGameSave) to Manual startup."
+riskLevel: low
+previewCommand: "Get-Service 'Xbox*' | Select-Object Name, Status, StartType"

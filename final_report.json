@@ -1,0 +1,99 @@
+{
+  "schema_version": "1.0",
+  "generated_by": "claude-code",
+  "generated_at": "2025-01-01T00:00:00Z",
+  "executive_summary": "Security remediation of Win-11-Debloat: 20 findings identified (6 P0, 8 P1, 6 P2). Produced 12 patch files, 8 Pester test files, 1 CI workflow, 4 documentation files, and 1 orchestration plan. P0 fixes address: firewall silent failure (F1), rollback race condition (F2), command injection via Invoke-Expression (F3), PS5.1 syntax crashes (F4), Export-ModuleMember crash (F7), and missing packaging script (F9).",
+  "issues_summary": {
+    "total_findings": 20,
+    "p0_critical": 6,
+    "p1_high": 8,
+    "p2_medium": 6,
+    "findings": [
+      {"id": "F1", "severity": "critical", "priority": "P0", "title": "Firewall rules use hostnames — silent fail", "status": "patch_ready"},
+      {"id": "F2", "severity": "critical", "priority": "P0", "title": "Rollback race condition — wrong backup restored", "status": "patch_ready"},
+      {"id": "F3", "severity": "critical", "priority": "P0", "title": "Invoke-Expression allows command injection (RCE)", "status": "patch_ready"},
+      {"id": "F4", "severity": "critical", "priority": "P0", "title": "PS5.1 syntax errors crash entire runtime", "status": "patch_ready"},
+      {"id": "F5", "severity": "high", "priority": "P1", "title": "AllowTelemetry=0 ineffective on non-Enterprise SKUs", "status": "patch_ready"},
+      {"id": "F6", "severity": "high", "priority": "P2", "title": "90% of modules unimplemented (stubs only)", "status": "documented"},
+      {"id": "F7", "severity": "high", "priority": "P0", "title": "Export-ModuleMember in .ps1 crashes on dot-source", "status": "patch_ready"},
+      {"id": "F8", "severity": "high", "priority": "P1", "title": "Plaintext logging — not JSON per CLAUDE.md spec", "status": "patch_ready"},
+      {"id": "F9", "severity": "high", "priority": "P0", "title": "Missing scripts/package.ps1 breaks release pipeline", "status": "patch_ready"},
+      {"id": "F10", "severity": "high", "priority": "P1", "title": "Xbox verify logic inverted — flags success as failure", "status": "patch_ready"},
+      {"id": "F11", "severity": "high", "priority": "P1", "title": "disable-wer rollback missing DefaultConsent restore", "status": "patch_ready"},
+      {"id": "F12", "severity": "medium", "priority": "P1", "title": "CI references nonexistent PowerShell/PowerShell@v2 action", "status": "documented"},
+      {"id": "F13", "severity": "medium", "priority": "P2", "title": "Checkpoint-Computer fails on ephemeral CI VMs", "status": "documented"},
+      {"id": "F14", "severity": "medium", "priority": "P1", "title": "GPG signing step has unreachable condition", "status": "documented"},
+      {"id": "F15", "severity": "medium", "priority": "P2", "title": "upload-artifact@v3 deprecated", "status": "documented"},
+      {"id": "F16", "severity": "medium", "priority": "P1", "title": "Metadata YAML schema inconsistent across modules", "status": "documented"},
+      {"id": "F17", "severity": "medium", "priority": "P2", "title": "No script annotation headers", "status": "documented"},
+      {"id": "F18", "severity": "medium", "priority": "P2", "title": "No pre-commit hooks for validation", "status": "documented"},
+      {"id": "F19", "severity": "medium", "priority": "P2", "title": "Idempotency weaknesses in apply scripts", "status": "documented"},
+      {"id": "F20", "severity": "medium", "priority": "P2", "title": "WaaSMedicSvc missing from protected services list", "status": "documented"}
+    ]
+  },
+  "patches_created": [
+    {"file": "suggested_patches/firewall-apply-fix-F1.ps1", "finding": "F1", "type": "full_replacement", "target": "modules/ultimate/firewall-telemetry-blocking/apply.ps1"},
+    {"file": "suggested_patches/firewall-rollback-fix-F1.ps1", "finding": "F1", "type": "full_replacement", "target": "modules/ultimate/firewall-telemetry-blocking/rollback.ps1"},
+    {"file": "suggested_patches/firewall-verify-fix-F1.ps1", "finding": "F1", "type": "full_replacement", "target": "modules/ultimate/firewall-telemetry-blocking/verify.ps1"},
+    {"file": "suggested_patches/runtime-state-fix-F2.ps1", "finding": "F2", "type": "new_file", "target": "runtime/state.ps1"},
+    {"file": "suggested_patches/godmode-fix-F3-F4.ps1", "finding": "F3+F4", "type": "partial_replacement", "target": "runtime/godmode.ps1"},
+    {"file": "suggested_patches/utils-fix-F7.ps1", "finding": "F7", "type": "instruction", "target": "runtime/utils.ps1"},
+    {"file": "suggested_patches/logging-fix-F8.ps1", "finding": "F8", "type": "new_file", "target": "runtime/logging.ps1"},
+    {"file": "suggested_patches/scripts-package-fix-F9.ps1", "finding": "F9", "type": "new_file", "target": "scripts/package.ps1"},
+    {"file": "suggested_patches/xbox-verify-fix-F10.ps1", "finding": "F10", "type": "full_replacement", "target": "modules/moderate/disable-xbox-services/verify.ps1"},
+    {"file": "suggested_patches/disable-wer-fix-F11.ps1", "finding": "F11", "type": "full_replacement", "target": "modules/godmode/disable-wer/apply.ps1 + rollback.ps1"},
+    {"file": "suggested_patches/telemetry-sku-fix-F5.ps1", "finding": "F5", "type": "partial_replacement", "target": "modules/minimal/disable-telemetry/apply.ps1"}
+  ],
+  "tests_created": [
+    {"file": "tests/unit/modules/firewall-telemetry-blocking.tests.ps1", "covers": ["F1"]},
+    {"file": "tests/unit/modules/disable-wer.tests.ps1", "covers": ["F11"]},
+    {"file": "tests/unit/modules/disable-xbox-services.tests.ps1", "covers": ["F10"]},
+    {"file": "tests/unit/modules/runtime-godmode.tests.ps1", "covers": ["F3", "F4"]},
+    {"file": "tests/unit/modules/runtime-utils.tests.ps1", "covers": ["F7"]},
+    {"file": "tests/unit/modules/runtime-state.tests.ps1", "covers": ["F2"]},
+    {"file": "tests/unit/modules/runtime-logging.tests.ps1", "covers": ["F8"]},
+    {"file": "tests/integration/minimal-enhanced.tests.ps1", "covers": ["minimal layer lifecycle"]}
+  ],
+  "ci_files_created": [
+    {
+      "file": ".github/workflows/security-remediation.yml",
+      "jobs": [
+        "metadata-validation",
+        "file-permissions",
+        "pester-tests",
+        "integration-minimal",
+        "vm-integration"
+      ]
+    }
+  ],
+  "documentation_created": [
+    {"file": "docs/remediation_plan.md", "description": "Prioritized P0/P1/P2 plan with effort estimates and acceptance criteria"},
+    {"file": "docs/new_design_theory.md", "description": "8-line grounded theory of root causes plus structural recommendations"},
+    {"file": "agentic_orchestration_plan.json", "description": "Machine-actionable 13-task plan with dependencies, commands, and failure rules"},
+    {"file": "triangulation_notes.md", "description": "5 contradictions and 4 ambiguities between JSON and MD reports with VM tests"},
+    {"file": "artifacts/canonical_issues.json", "description": "Normalized issue model with all 20 findings"}
+  ],
+  "effort_estimate": {
+    "p0_total_hours": 19,
+    "p1_total_hours": 12,
+    "p2_total_hours": 52,
+    "grand_total_hours": 83,
+    "p0_breakdown": {
+      "F1_firewall": 4,
+      "F2_state_management": 6,
+      "F3_invoke_expression": 3,
+      "F4_syntax_errors": 2,
+      "F7_export_module": 1,
+      "F9_packaging": 3
+    }
+  },
+  "verification_commands": {
+    "annotation": "RUN INSIDE WINDOWS VM OR CI ONLY",
+    "run_all_unit_tests": "Invoke-Pester -Path ./tests/unit/ -Output Detailed",
+    "run_integration_tests": "Invoke-Pester -Path ./tests/integration/ -ExcludeTag VM -Output Detailed",
+    "run_vm_tests": "Invoke-Pester -Path ./tests/integration/ -Tag VM -Output Detailed",
+    "verify_firewall_fix": "Get-NetFirewallRule -DisplayName 'WinOptimizer*' | Get-NetFirewallAddressFilter | Select RemoteAddress",
+    "verify_no_iex": "Select-String -Path runtime/godmode.ps1 -Pattern 'Invoke-Expression'",
+    "verify_utils_loads": ". .\\runtime\\utils.ps1; Get-Command Test-AdminPrivileges"
+  }
+}

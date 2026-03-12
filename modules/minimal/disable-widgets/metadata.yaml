@@ -1,0 +1,9 @@
+id: disable-widgets
+title: "Disable Windows Widgets"
+layer: minimal
+severity: zero
+reversible: yes
+summary: "Disables the Windows Widgets panel that appears in the taskbar. This removes the weather/news feed and stops background widget processes, reducing memory usage and eliminating unwanted content consumption."
+whatChanges: "Disables Widgets taskbar button via policy and stops WebExperience background processes."
+riskLevel: zero
+previewCommand: "Get-Process 'WebExperience*' -ErrorAction SilentlyContinue | Select-Object Name, CPU"

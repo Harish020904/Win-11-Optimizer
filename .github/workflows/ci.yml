@@ -1,0 +1,164 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths-ignore:
+      - '**.md'
+  pull_request:
+    branches: [ main ]
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  lint:
+    name: Lint (PSScriptAnalyzer)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell
+        uses: PowerShell/PowerShell@v2
+
+      - name: Install PSScriptAnalyzer
+        run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
+
+      - name: Run PSScriptAnalyzer
+        run: |
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Settings .github/psscriptanalyzer.psd1
+          if ($results) {
+            $results | Format-Table -AutoSize
+            exit 1
+          }
+
+  unit-test:
+    name: Unit Tests (Pester)
+    runs-on: windows-latest
+    needs: lint
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell
+        uses: PowerShell/PowerShell@v2
+
+      - name: Install Pester
+        run: Install-Module Pester -Force -Scope CurrentUser -MinimumVersion 5.5.0
+
+      - name: Run Pester tests
+        run: |
+          $result = Invoke-Pester -Path ./tests/unit -OutputFormat NUnitXml -OutputFile test-results.xml -PassThru
+          if ($result.FailedCount -gt 0) {
+            exit 1
+          }
+
+      - name: Upload test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: unit-test-results
+          path: test-results.xml
+
+  integration-test-minimal:
+    name: Integration Test - Minimal Layer
+    runs-on: windows-latest
+    needs: unit-test
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup PowerShell
+        uses: PowerShell/PowerShell@v2
+
+      - name: Install Pester
+        run: Install-Module Pester -Force -Scope CurrentUser -MinimumVersion 5.5.0
+
+      - name: Run Minimal layer integration tests
+        run: |
+          # Create system restore point
+          Checkpoint-Computer -Description "Pre-test baseline" -RestorePointType "MODIFY_SETTINGS"
+
+          # Preview Minimal layer
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./runtime/godmode.ps1 --manifest ./runtime/manifests/minimal.yaml --preview
+
+          # Apply Minimal layer
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./runtime/godmode.ps1 --manifest ./runtime/manifests/minimal.yaml --apply
+
+          # Run verification
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./runtime/godmode.ps1 --manifest ./runtime/manifests/minimal.yaml --verify
+
+          # Run Pester integration tests
+          $result = Invoke-Pester -Path ./tests/integration/minimal -OutputFormat NUnitXml -OutputFile integration-results.xml -PassThru
+          if ($result.FailedCount -gt 0) {
+            exit 1
+          }
+
+      - name: Rollback Minimal layer
+        if: always()
+        run: |
+          powershell -NoProfile -ExecutionPolicy Bypass -File ./runtime/godmode.ps1 --manifest ./runtime/manifests/minimal.yaml --rollback
+
+      - name: Upload integration test results
+        uses: actions/upload-artifact@v3
+        if: always()
+        with:
+          name: integration-test-results-minimal
+          path: integration-results.xml
+
+  security-scan:
+    name: Security Scan
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Scan for secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+
+  build-info:
+    name: Generate Build Info
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.version.outputs.version }}
+      commit: ${{ steps.info.outputs.commit }}
+      date: ${{ steps.info.outputs.date }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Get version
+        id: version
+        run: |
+          VERSION=$(grep '^version:' build-info.yaml | awk '{print $2}' | tr -d '"')
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Version: $VERSION"
+
+      - name: Generate build info
+        id: info
+        run: |
+          echo "commit=${{ github.sha }}" >> $GITHUB_OUTPUT
+          echo "date=$(date -u +%Y-%m-%dT%H:%M:%SZ)" >> $GITHUB_OUTPUT
+
+      - name: Write build-info.json
+        run: |
+          cat > build-info.json << EOF
+          {
+            "commit": "${{ github.sha }}",
+            "tag": "${{ steps.version.outputs.version }}",
+            "built_by": "ci@github-actions",
+            "build_time_utc": "${{ steps.info.outputs.date }}",
+            "branch": "${{ github.ref_name }}"
+          }
+          EOF
+          cat build-info.json
+
+      - name: Upload build info
+        uses: actions/upload-artifact@v3
+        with:
+          name: build-info
+          path: build-info.json

@@ -1,0 +1,10 @@
+# Win11 Optimizer - GodMode Layer Manifest
+# Risk Level: High | Reversible: Partially
+
+name: "GodMode"
+description: "Minimal runtime configuration (~60 services). Linux-like efficiency. Background UWP infrastructure, consumer frameworks, and error reporting disabled."
+layer: godmode
+riskLevel: high
+
+modules:
+  - disable-wer

@@ -1,0 +1,38 @@
+# Auto detect text files and normalize line endings to LF
+* text=auto eol=lf
+
+# Windows PowerShell scripts should use CRLF on Windows
+*.ps1 text eol=crlf
+*.psm1 text eol=crlf
+*.psd1 text eol=crlf
+
+# YAML files use LF
+*.yaml text eol=lf
+*.yml text eol=lf
+
+# JSON files use LF
+*.json text eol=lf
+
+# Markdown files use LF
+*.md text eol=lf
+
+# Shell scripts use LF
+*.sh text eol=lf
+
+# Binary files
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.zip binary
+*.tar.gz binary
+*.tar.xz binary
+*.pfx binary
+*.p12 binary
+*.cer binary
+*.crt binary
+*.der binary
+
+# Executable flag - never commit executable bits from build host
+# These files will be set executable in CI/VM only
