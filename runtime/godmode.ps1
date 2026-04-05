@@ -481,7 +481,27 @@ function Invoke-ModuleApply {
         } elseif ($Metadata.ApplyCommands) {
             foreach ($cmd in $Metadata.ApplyCommands) {
                 Write-Log -Message "Executing: $cmd" -Level DEBUG
-                Invoke-Expression $cmd
+                # SEC-001: Validate and safely execute command without Invoke-Expression
+                if ($cmd -match '\|') {
+                    throw "Pipeline expressions are not permitted in module commands."
+                }
+                $cmdParts = $cmd -split '\s+', 2
+                $executable = $cmdParts[0]
+                $arguments = if ($cmdParts.Length -gt 1) { $cmdParts[1] } else { $null }
+                # Validate executable is within module directory
+                $resolvedPath = $null
+                if (Test-Path $executable) {
+                    $resolvedPath = (Resolve-Path $executable).Path
+                    $moduleRoot = (Resolve-Path $ModulePath).Path
+                    if (-not $resolvedPath.StartsWith($moduleRoot)) {
+                        throw "Command executable must be within module directory: $executable"
+                    }
+                }
+                if ($arguments) {
+                    & $executable $arguments
+                } else {
+                    & $executable
+                }
                 if ($LASTEXITCODE -ne 0) {
                     throw "Command failed: $cmd"
                 }
@@ -511,7 +531,27 @@ function Invoke-ModuleRollback {
         } elseif ($Metadata.RollbackCommands) {
             foreach ($cmd in $Metadata.RollbackCommands) {
                 Write-Log -Message "Rollback: $cmd" -Level DEBUG
-                Invoke-Expression $cmd
+                # SEC-001: Validate and safely execute command without Invoke-Expression
+                if ($cmd -match '\|') {
+                    throw "Pipeline expressions are not permitted in module commands."
+                }
+                $cmdParts = $cmd -split '\s+', 2
+                $executable = $cmdParts[0]
+                $arguments = if ($cmdParts.Length -gt 1) { $cmdParts[1] } else { $null }
+                # Validate executable is within module directory
+                $resolvedPath = $null
+                if (Test-Path $executable) {
+                    $resolvedPath = (Resolve-Path $executable).Path
+                    $moduleRoot = (Resolve-Path $ModulePath).Path
+                    if (-not $resolvedPath.StartsWith($moduleRoot)) {
+                        throw "Command executable must be within module directory: $executable"
+                    }
+                }
+                if ($arguments) {
+                    & $executable $arguments
+                } else {
+                    & $executable
+                }
             }
         }
 
@@ -536,7 +576,27 @@ function Invoke-ModuleVerify {
             return $LASTEXITCODE -eq 0
         } elseif ($Metadata.Verify) {
             foreach ($check in $Metadata.Verify) {
-                $result = Invoke-Expression $check
+                # SEC-001: Validate and safely execute verification command without Invoke-Expression
+                if ($check -match '\|') {
+                    throw "Pipeline expressions are not permitted in module commands."
+                }
+                $cmdParts = $check -split '\s+', 2
+                $executable = $cmdParts[0]
+                $arguments = if ($cmdParts.Length -gt 1) { $cmdParts[1] } else { $null }
+                # Validate executable is within module directory
+                $resolvedPath = $null
+                if (Test-Path $executable) {
+                    $resolvedPath = (Resolve-Path $executable).Path
+                    $moduleRoot = (Resolve-Path $ModulePath).Path
+                    if (-not $resolvedPath.StartsWith($moduleRoot)) {
+                        throw "Command executable must be within module directory: $executable"
+                    }
+                }
+                $result = if ($arguments) {
+                    & $executable $arguments
+                } else {
+                    & $executable
+                }
                 if (-not $result) {
                     Write-Log -Message "Verification failed for: $check" -Level WARN
                     return $false
@@ -568,7 +628,9 @@ function Invoke-LayerPreview {
     Write-Host ("═" * 76) -ForegroundColor Cyan
     Write-Host ""
     Write-Host "  Description: $($manifest.description)" -ForegroundColor White
-    Write-Host "  Risk Level:  $($manifest.riskLevel)" -ForegroundColor (if ($manifest.riskLevel -eq 'HIGH') { 'Red' } elseif ($manifest.riskLevel -eq 'MEDIUM') { 'Yellow' } else { 'Green' })
+    # CODE-001: Extract inline if to variable for PS 5.1 compatibility
+    $riskColor = if ($manifest.riskLevel -eq 'HIGH') { 'Red' } elseif ($manifest.riskLevel -eq 'MEDIUM') { 'Yellow' } else { 'Green' }
+    Write-Host "  Risk Level:  $($manifest.riskLevel)" -ForegroundColor $riskColor
     Write-Host "  Modules:     $($manifest.modules.Count)" -ForegroundColor White
     Write-Host ""
 
@@ -722,7 +784,9 @@ function Invoke-LayerVerify {
 
     Write-Host "`n  Verification Results:" -ForegroundColor Cyan
     Write-Host "    Passed: $($results.Passed)" -ForegroundColor Green
-    Write-Host "    Failed: $($results.Failed)" -if ($results.Failed -eq 0) { 'Green' } else { 'Red' }
+    # CODE-001: Fix PS5.1 syntax - extract conditional to variable
+    $failedColor = if ($results.Failed -eq 0) { 'Green' } else { 'Red' }
+    Write-Host "    Failed: $($results.Failed)" -ForegroundColor $failedColor
 
     return $results.Failed -eq 0
 }

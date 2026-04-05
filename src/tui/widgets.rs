@@ -9,6 +9,244 @@ use ratatui::{
     Frame,
 };
 
+/// ASCII art logo for Win11-Optimizer (3D style)
+pub fn ascii_logo() -> Vec<Line<'static>> {
+    vec![
+        Line::from(vec![
+            Span::styled("██╗    ██╗██╗███╗   ██╗", Theme::title()),
+            Span::styled(" ╗╗  ", Theme::dim()),
+            Span::styled("   ██████╗ ██████╗ ████████╗██╗███╗   ███╗██╗███████╗███████╗██████╗ ", Theme::highlight()),
+        ]),
+        Line::from(vec![
+            Span::styled("██║    ██║██║████╗  ██║", Theme::title()),
+            Span::styled("███║  ", Theme::dim()),
+            Span::styled("  ██╔═══██╗██╔══██╗╚══██╔══╝██║████╗ ████║██║╚══███╔╝██╔════╝██╔══██╗", Theme::highlight()),
+        ]),
+        Line::from(vec![
+            Span::styled("██║ █╗ ██║██║██╔██╗ ██║", Theme::title()),
+            Span::styled("╚██║  ", Theme::dim()),
+            Span::styled("  ██║   ██║██████╔╝   ██║   ██║██╔████╔██║██║  ███╔╝ █████╗  ██████╔╝", Theme::highlight()),
+        ]),
+        Line::from(vec![
+            Span::styled("██║███╗██║██║██║╚██╗██║", Theme::dim()),
+            Span::styled(" ██║  ", Theme::dim()),
+            Span::styled("  ██║   ██║██╔═══╝    ██║   ██║██║╚██╔╝██║██║ ███╔╝  ██╔══╝  ██╔══██╗", Theme::dim()),
+        ]),
+        Line::from(vec![
+            Span::styled("╚███╔███╔╝██║██║ ╚████║", Theme::dim()),
+            Span::styled("███║  ", Theme::dim()),
+            Span::styled("  ╚██████╔╝██║        ██║   ██║██║ ╚═╝ ██║██║███████╗███████╗██║  ██║", Theme::dim()),
+        ]),
+        Line::from(vec![
+            Span::styled(" ╚══╝╚══╝ ╚═╝╚═╝  ╚═══╝", Theme::dim()),
+            Span::styled("╚══╝  ", Theme::dim()),
+            Span::styled("   ╚═════╝ ╚═╝        ╚═╝   ╚═╝╚═╝     ╚═╝╚═╝╚══════╝╚══════╝╚═╝  ╚═╝", Theme::dim()),
+        ]),
+    ]
+}
+
+/// Draw a left sidebar menu
+pub fn draw_sidebar(
+    frame: &mut Frame,
+    area: Rect,
+    title: &str,
+    items: &[(&str, &str, bool)], // (label, icon, is_selected)
+    focused: bool,
+) {
+    let border_style = if focused {
+        Theme::border_focus()
+    } else {
+        Theme::border()
+    };
+
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(border_style)
+        .title(Span::styled(format!(" {} ", title), Theme::title()));
+
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let list_items: Vec<ListItem> = items
+        .iter()
+        .map(|(label, icon, selected)| {
+            let style = if *selected {
+                Theme::selected()
+            } else {
+                Theme::normal()
+            };
+
+            let prefix = if *selected { "▶ " } else { "  " };
+            let content = Line::from(vec![
+                Span::styled(prefix, style),
+                Span::styled(format!("{} ", icon), Theme::highlight()),
+                Span::styled(*label, style),
+            ]);
+
+            ListItem::new(content)
+        })
+        .collect();
+
+    let list = List::new(list_items);
+    frame.render_widget(list, inner);
+}
+
+/// Draw a system info panel (enhanced with Windows insights)
+pub fn draw_system_info(frame: &mut Frame, area: Rect, sysinfo: &Option<crate::core::SystemInfo>) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Theme::border())
+        .title(Span::styled(" SYSTEM INFO ", Theme::title()));
+
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let info_lines = if let Some(info) = sysinfo {
+        vec![
+            Line::from(vec![
+                Span::styled("OS:      ", Theme::dim()),
+                Span::styled(
+                    format!("{} ({})", info.os_version.chars().take(20).collect::<String>(), info.build_number),
+                    Theme::normal()
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("CPU:     ", Theme::dim()),
+                Span::styled(
+                    format!("{} ({} cores)", 
+                        info.cpu_model.chars().take(25).collect::<String>(),
+                        info.cpu_cores
+                    ),
+                    Theme::normal()
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("RAM:     ", Theme::dim()),
+                Span::styled(
+                    format!("{:.1} GB / {:.1} GB", info.available_ram_gb, info.total_ram_gb),
+                    Theme::normal()
+                ),
+                Span::styled(
+                    format!(" ({:.0}% free)", (info.available_ram_gb / info.total_ram_gb) * 100.0),
+                    Theme::dim()
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("GPU:     ", Theme::dim()),
+                Span::styled(
+                    info.gpu.chars().take(30).collect::<String>(),
+                    Theme::normal()
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("Disk:    ", Theme::dim()),
+                Span::styled(
+                    format!("{:.1} GB / {:.1} GB", info.disk_used_gb, info.disk_total_gb),
+                    Theme::normal()
+                ),
+                Span::styled(
+                    format!(" ({:.0}% used)", (info.disk_used_gb / info.disk_total_gb) * 100.0),
+                    Theme::dim()
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("Host:    ", Theme::dim()),
+                Span::styled(format!("{}@{}", info.username, info.hostname), Theme::normal()),
+            ]),
+            Line::from(vec![
+                Span::styled("Uptime:  ", Theme::dim()),
+                Span::styled(&info.uptime, Theme::normal()),
+            ]),
+        ]
+    } else {
+        vec![
+            Line::from(Span::styled("Loading system info...", Theme::dim())),
+        ]
+    };
+
+    let info = Paragraph::new(info_lines);
+    frame.render_widget(info, inner);
+}
+
+/// Draw cleanup estimation panel
+pub fn draw_cleanup_estimate(frame: &mut Frame, area: Rect, cleanup: &Option<crate::core::CleanupEstimate>) {
+    let block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Theme::border())
+        .title(Span::styled(" CLEANUP POTENTIAL ", Theme::warning()));
+
+    let inner = block.inner(area);
+    frame.render_widget(block, area);
+
+    let cleanup_lines = if let Some(est) = cleanup {
+        vec![
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  Total Reclaimable:  ", Theme::dim()),
+                Span::styled(
+                    format!("{:.2} GB", est.total_cleanup_gb),
+                    Theme::success().add_modifier(Modifier::BOLD)
+                ),
+            ]),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("  • Temp Files:       ", Theme::dim()),
+                Span::styled(format!("{:.2} GB", est.temp_files_gb), Theme::normal()),
+            ]),
+            Line::from(vec![
+                Span::styled("  • Update Cache:     ", Theme::dim()),
+                Span::styled(format!("{:.2} GB", est.update_cache_gb), Theme::normal()),
+            ]),
+            Line::from(vec![
+                Span::styled("  • Recycle Bin:      ", Theme::dim()),
+                Span::styled(format!("{:.2} GB", est.recycle_bin_gb), Theme::normal()),
+            ]),
+            if est.windows_old_gb > 0.0 {
+                Line::from(vec![
+                    Span::styled("  • Windows.old:      ", Theme::dim()),
+                    Span::styled(format!("{:.2} GB", est.windows_old_gb), Theme::warning()),
+                ])
+            } else {
+                Line::from("")
+            },
+        ]
+    } else {
+        vec![
+            Line::from(""),
+            Line::from(Span::styled("  Calculating...", Theme::dim())),
+        ]
+    };
+
+    let cleanup = Paragraph::new(cleanup_lines);
+    frame.render_widget(cleanup, inner);
+}
+
+/// Draw a tech-style header
+pub fn draw_tech_header(frame: &mut Frame, area: Rect, version: &str) {
+    let layout = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(6),  // Logo (6 lines for 3D ASCII)
+            Constraint::Length(1),  // Version
+        ])
+        .split(area);
+
+    // Logo
+    let logo = Paragraph::new(ascii_logo())
+        .alignment(Alignment::Center);
+    frame.render_widget(logo, layout[0]);
+
+    // Version and divider
+    let version_line = Line::from(vec![
+        Span::styled("═".repeat(layout[1].width as usize / 3), Theme::border()),
+        Span::styled(format!(" v{} ", version), Theme::highlight().add_modifier(Modifier::BOLD)),
+        Span::styled("Windows 11 System Optimizer ", Theme::dim()),
+        Span::styled("═".repeat(layout[1].width as usize / 3), Theme::border()),
+    ]);
+    let version_text = Paragraph::new(version_line).alignment(Alignment::Center);
+    frame.render_widget(version_text, layout[1]);
+}
+
 /// Draw a centered title block
 pub fn draw_title(frame: &mut Frame, area: Rect, title: &str, subtitle: Option<&str>) {
     let block = Block::default()

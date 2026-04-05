@@ -3,14 +3,26 @@ name: CI
 on:
   push:
     branches: [ main, develop ]
-    paths-ignore:
-      - '**.md'
   pull_request:
     branches: [ main ]
-    paths-ignore:
-      - '**.md'
 
 jobs:
+  security-config-check:
+    name: Security Config Validation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Check SECURITY.md for placeholder values
+        run: |
+          if grep -q "CHANGEME" SECURITY.md; then
+            echo "ERROR: SECURITY.md contains placeholder values (CHANGEME)"
+            echo "Please replace CHANGEME with actual security contact information"
+            grep -n "CHANGEME" SECURITY.md
+            exit 1
+          fi
+
   lint:
     name: Lint (PSScriptAnalyzer)
     runs-on: windows-latest
@@ -104,7 +116,8 @@ jobs:
 
   security-scan:
     name: Security Scan
-    runs-on: windows-latest
+    # TruffleHog action runs via Linux container image; must use Linux runner.
+    runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -113,7 +126,8 @@ jobs:
           fetch-depth: 0
 
       - name: Scan for secrets
-        uses: trufflesecurity/trufflehog@main
+        # SEC-004: Pinned to specific SHA for supply chain security (v3.94.2)
+        uses: trufflesecurity/trufflehog@6bd2d14f7a4bc1e569fa3550efa7ec632a4fa67b
         with:
           path: ./
           # Only scan the diff on pull requests, scan full history on push

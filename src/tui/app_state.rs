@@ -1,7 +1,7 @@
 //! TUI application state management
 
 use crate::app::{AppContext, WizardSelections, WizardState};
-use crate::core::Layer;
+use crate::core::{Layer, SystemInfo, CleanupEstimate};
 
 /// Full TUI application state
 pub struct TuiState {
@@ -21,6 +21,10 @@ pub struct TuiState {
     pub progress: Option<Progress>,
     /// Log messages for current operation
     pub logs: Vec<LogEntry>,
+    /// System information
+    pub system_info: Option<SystemInfo>,
+    /// Cleanup estimation
+    pub cleanup_estimate: Option<CleanupEstimate>,
 }
 
 /// Progress tracking for operations
@@ -59,6 +63,10 @@ pub enum LogLevel {
 impl TuiState {
     /// Create new TUI state
     pub fn new(ctx: AppContext) -> Self {
+        // Gather system info asynchronously (non-blocking)
+        let system_info = SystemInfo::gather().ok();
+        let cleanup_estimate = CleanupEstimate::calculate().ok();
+        
         Self {
             ctx,
             screen: WizardState::Welcome,
@@ -68,6 +76,8 @@ impl TuiState {
             status_message: None,
             progress: None,
             logs: Vec::new(),
+            system_info,
+            cleanup_estimate,
         }
     }
 

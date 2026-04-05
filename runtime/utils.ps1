@@ -403,21 +403,5 @@ function Set-WinOptimizerState {
     $state | ConvertTo-Json -Depth 10 | Out-File $stateFile -Encoding UTF8
 }
 
-# Export functions
-Export-ModuleMember -Function @(
-    'Get-WinOptimizerPath',
-    'Get-WinOptimizerConfigPath',
-    'Get-WinOptimizerBackupPath',
-    'Get-WinOptimizerLogPath',
-    'Get-WinOptimizerStatePath',
-    'Test-AdminPrivileges',
-    'Test-ProtectedComponent',
-    'New-WinOptimizerDirectory',
-    'Export-WinOptimizerSnapshot',
-    'Test-WindowsUpdateAccess',
-    'Test-DefenderStatus',
-    'Compare-Snapshots',
-    'ConvertFrom-YamlSimple',
-    'Get-WinOptimizerState',
-    'Set-WinOptimizerState'
-)
+# CODE-002: Removed Export-ModuleMember - this cmdlet only works in .psm1 module files,
+# not in .ps1 scripts. Function visibility in dot-sourced scripts is controlled by scope.

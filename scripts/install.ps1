@@ -1,5 +1,10 @@
 # Win11 Optimizer Installer
-# Usage: iwr -useb https://raw.githubusercontent.com/Harish020904/Win-11-Optimizer/main/scripts/install.ps1 | iex
+#
+# SECURITY NOTICE: This script must be reviewed before execution.
+# DO NOT pipe this script directly from a remote source using iex.
+# Instead, download first, review the contents, then execute:
+#   Invoke-WebRequest -Uri <url> -OutFile install.ps1
+#   .\install.ps1
 #
 # This script downloads and installs the Win11 Optimizer TUI application.
 

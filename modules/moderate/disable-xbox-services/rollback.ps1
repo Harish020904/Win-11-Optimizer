@@ -1,43 +1,60 @@
 # Rollback: Disable Xbox Services
 
 $ErrorActionPreference = "Stop"
+$moduleId = "disable-xbox-services"
 
-# Find most recent backup
-$backupRoot = "C:\ProgramData\WinOptimizer\backup"
-if (Test-Path $backupRoot) {
-    $latestBackup = Get-ChildItem -Path $backupRoot -Directory |
-                    Sort-Object Name -Descending |
-                    Select-Object -First 1
-    $backupDir = Join-Path $latestBackup.FullName "disable-xbox-services"
+# ROLLBACK-001: Read backup path from state.json instead of timestamp-based selection
+$stateFile = "C:\ProgramData\WinOptimizer\state\state.json"
+$backupDir = $null
 
-    if (Test-Path $backupDir -and (Test-Path "$backupDir\services.json")) {
-        $serviceStates = Get-Content "$backupDir\services.json" | ConvertFrom-Json
+if (Test-Path $stateFile) {
+    $state = Get-Content $stateFile | ConvertFrom-Json
+    if ($state.backups -and $state.backups.$moduleId) {
+        $backupDir = $state.backups.$moduleId
+    }
+}
 
-        foreach ($state in $serviceStates) {
-            try {
-                $service = Get-Service $state.Name -ErrorAction SilentlyContinue
-                if ($service) {
-                    # Restore start type
-                    $startType = switch ($state.StartType) {
-                        'Automatic' { 'Automatic' }
-                        'AutomaticDelayedStart' { 'Automatic' }
-                        'Manual' { 'Manual' }
-                        'Disabled' { 'Disabled' }
-                        default { 'Automatic' }
-                    }
-                    Set-Service -Name $state.Name -StartupType $startType
+if (-not $backupDir -or -not (Test-Path $backupDir)) {
+    Write-Host "ERROR: No backup record found for module $moduleId. Cannot rollback safely." -ForegroundColor Red
+    exit 1
+}
 
-                    # Start if it was running
-                    if ($state.Status -eq 'Running') {
-                        Start-Service -Name $state.Name -ErrorAction SilentlyContinue
-                    }
+if (Test-Path "$backupDir\services.json") {
+    $serviceStates = Get-Content "$backupDir\services.json" | ConvertFrom-Json
 
-                    Write-Host "    Restored $($state.Name)" -ForegroundColor Green
+    foreach ($svcState in $serviceStates) {
+        try {
+            $service = Get-Service $svcState.Name -ErrorAction SilentlyContinue
+            if ($service) {
+                # Restore start type
+                $startType = switch ($svcState.StartType) {
+                    'Automatic' { 'Automatic' }
+                    'AutomaticDelayedStart' { 'Automatic' }
+                    'Manual' { 'Manual' }
+                    'Disabled' { 'Disabled' }
+                    default { 'Automatic' }
                 }
-            } catch {
-                Write-Host "    Warning: Could not restore $($state.Name) - $($_.Exception.Message)" -ForegroundColor Yellow
+                Set-Service -Name $svcState.Name -StartupType $startType
+
+                # Start if it was running
+                if ($svcState.Status -eq 'Running') {
+                    Start-Service -Name $svcState.Name -ErrorAction SilentlyContinue
+                }
+
+                Write-Host "    Restored $($svcState.Name)" -ForegroundColor Green
             }
+        } catch {
+            Write-Host "    Warning: Could not restore $($svcState.Name) - $($_.Exception.Message)" -ForegroundColor Yellow
         }
+    }
+}
+
+# ROLLBACK-001: Remove backup entry from state.json after successful rollback
+if (Test-Path $stateFile) {
+    $state = Get-Content $stateFile | ConvertFrom-Json
+    if ($state.backups -and $state.backups.$moduleId) {
+        $state.backups.PSObject.Properties.Remove($moduleId)
+        $state | ConvertTo-Json -Depth 10 | Out-File $stateFile -Encoding UTF8
     }
 }
 

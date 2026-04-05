@@ -3,10 +3,26 @@
 $ErrorActionPreference = "Stop"
 
 $services = @('DiagTrack', 'dmwappushservice')
+$moduleId = "disable-telemetry"
 
 # Create backup directory
-$backupDir = "C:\ProgramData\WinOptimizer\backup\$(Get-Date -Format 'yyyyMMdd_HHmmss')\disable-telemetry"
+$backupDir = "C:\ProgramData\WinOptimizer\backup\$(Get-Date -Format 'yyyyMMdd_HHmmss')\$moduleId"
 New-Item -Path $backupDir -ItemType Directory -Force | Out-Null
+
+# ROLLBACK-001: Record backup path in state.json for explicit rollback tracking
+$stateFile = "C:\ProgramData\WinOptimizer\state\state.json"
+$stateDir = Split-Path $stateFile -Parent
+if (-not (Test-Path $stateDir)) {
+    New-Item -Path $stateDir -ItemType Directory -Force | Out-Null
+}
+$state = if (Test-Path $stateFile) {
+    Get-Content $stateFile | ConvertFrom-Json
+} else {
+    @{ backups = @{} }
+}
+if (-not $state.backups) { $state | Add-Member -NotePropertyName "backups" -NotePropertyValue @{} -Force }
+$state.backups | Add-Member -NotePropertyName $moduleId -NotePropertyValue $backupDir -Force
+$state | ConvertTo-Json -Depth 10 | Out-File $stateFile -Encoding UTF8
 
 # Backup current service states
 $serviceStates = @()

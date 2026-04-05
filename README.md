@@ -47,10 +47,14 @@ The optimizer will **never** modify these protected Windows components:
 
 ### Installation (Rust TUI - Recommended)
 
-One-liner install:
+**Two-step installation (recommended for security):**
 
 ```powershell
-iwr -useb https://raw.githubusercontent.com/Harish020904/Win-11-Optimizer/main/scripts/install.ps1 | iex
+# Step 1 — Download and inspect
+Invoke-WebRequest -Uri https://raw.githubusercontent.com/Harish020904/Win-11-Optimizer/main/scripts/install.ps1 -OutFile install.ps1
+
+# Step 2 — Review the script, then execute
+.\install.ps1
 ```
 
 Or download manually from [Releases](https://github.com/Harish020904/Win-11-Optimizer/releases).

@@ -74,6 +74,10 @@ impl Theme {
         Style::default().fg(Self::ERROR)
     }
 
+    pub fn info() -> Style {
+        Style::default().fg(Self::INFO)
+    }
+
     pub fn border() -> Style {
         Style::default().fg(Self::BORDER)
     }

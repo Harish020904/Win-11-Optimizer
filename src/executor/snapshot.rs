@@ -126,8 +126,5 @@ impl SnapshotManager {
     }
 }
 
-impl Default for SnapshotManager {
-    fn default() -> Self {
-        Self::new().expect("Failed to create snapshot manager")
-    }
-}
+// CODE-003: Removed Default impl that used expect() - callers must handle
+// SnapshotManager::new() Result explicitly to avoid panics

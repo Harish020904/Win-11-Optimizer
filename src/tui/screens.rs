@@ -6,10 +6,10 @@ use crate::tui::{app_state::LogLevel, theme::Theme, widgets, TuiState};
 use anyhow::Result;
 use crossterm::event::KeyCode;
 use ratatui::{
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout},
     style::Modifier,
     text::{Line, Span},
-    widgets::{Block, Borders, List, ListItem, Paragraph, Wrap},
+    widgets::{Block, Borders, Paragraph, Wrap},
     Frame,
 };
 
@@ -50,117 +50,143 @@ pub async fn handle_key(state: &mut TuiState, key: KeyCode) -> Result<bool> {
 fn draw_welcome(frame: &mut Frame, state: &TuiState) {
     let area = frame.size();
 
-    // Main layout
-    let chunks = Layout::default()
+    // Main layout: Top header | Content with sidebar | Bottom help
+    let main_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
+        .margin(1)
         .constraints([
-            Constraint::Length(3),  // Title
-            Constraint::Min(10),    // Content
-            Constraint::Length(3),  // Buttons
-            Constraint::Length(1),  // Help
+            Constraint::Length(8),  // Header with 3D ASCII logo (6 + 1 + 1)
+            Constraint::Min(10),    // Main content area
+            Constraint::Length(1),  // Help bar
         ])
         .split(area);
 
-    // Title
-    let title = Paragraph::new(vec![
-        Line::from(Span::styled(
-            "Win11 Optimizer v2.0",
-            Theme::title().add_modifier(Modifier::BOLD),
-        )),
-        Line::from(Span::styled(
-            "━━━━━━━━━━━━━━━━━━━━━━━",
-            Theme::dim(),
-        )),
-    ])
-    .alignment(Alignment::Center);
-    frame.render_widget(title, chunks[0]);
+    // Header
+    widgets::draw_tech_header(frame, main_chunks[0], "2.0");
 
-    // Content
-    let content_block = Block::default()
+    // Content area: Left sidebar | Right content
+    let content_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(1)
+        .constraints([
+            Constraint::Length(30),  // Sidebar
+            Constraint::Min(40),     // Main content
+        ])
+        .split(main_chunks[1]);
+
+    // Left sidebar with layers
+    let layers = vec![
+        ("Minimal", "🟢", false),
+        ("Moderate", "🔵", false),
+        ("Ultimate", "🟡", false),
+        ("GodMode", "🔴", false),
+    ];
+    widgets::draw_sidebar(frame, content_chunks[0], "LAYERS", &layers, false);
+
+    // Right content area: Welcome info | System info | Cleanup | Actions
+    let right_chunks = Layout::default()
+        .direction(Direction::Vertical)
+        .constraints([
+            Constraint::Length(12),  // Welcome text
+            Constraint::Length(10),  // System info
+            Constraint::Length(10),  // Cleanup estimate
+            Constraint::Min(3),      // Actions
+        ])
+        .split(content_chunks[1]);
+
+    // Welcome content
+    let welcome_block = Block::default()
         .borders(Borders::ALL)
-        .border_style(Theme::border());
-    let content_area = content_block.inner(chunks[1]);
-    frame.render_widget(content_block, chunks[1]);
+        .border_style(Theme::border_focus())
+        .title(Span::styled(" WELCOME ", Theme::title()));
+    let welcome_inner = welcome_block.inner(right_chunks[0]);
+    frame.render_widget(welcome_block, right_chunks[0]);
 
     let welcome_text = vec![
         Line::from(""),
         Line::from(Span::styled(
-            "Welcome to the Windows 11 Optimization Wizard",
-            Theme::normal(),
-        )),
-        Line::from(""),
-        Line::from(Span::styled(
-            "This tool will guide you through optimizing your system",
-            Theme::dim(),
-        )),
-        Line::from(Span::styled(
-            "in progressive layers:",
-            Theme::dim(),
+            "Progressive System Optimization Framework",
+            Theme::title(),
         )),
         Line::from(""),
         Line::from(vec![
-            Span::styled("  • ", Theme::dim()),
-            Span::styled("Minimal   ", Theme::success()),
-            Span::styled("- Low risk, reduce telemetry", Theme::dim()),
+            Span::styled("  🟢 Minimal   ", Theme::success()),
+            Span::styled("→ Reduce telemetry, bloat & UI clutter", Theme::dim()),
         ]),
         Line::from(vec![
-            Span::styled("  • ", Theme::dim()),
-            Span::styled("Moderate  ", Theme::success()),
-            Span::styled("- Developer workstation tuning", Theme::dim()),
+            Span::styled("  🔵 Moderate  ", Theme::info()),
+            Span::styled("→ Developer workstation optimization", Theme::dim()),
         ]),
         Line::from(vec![
-            Span::styled("  • ", Theme::dim()),
-            Span::styled("Ultimate  ", Theme::warning()),
-            Span::styled("- Enterprise hardening", Theme::dim()),
+            Span::styled("  🟡 Ultimate  ", Theme::warning()),
+            Span::styled("→ Enterprise hardening & lockdown", Theme::dim()),
         ]),
         Line::from(vec![
-            Span::styled("  • ", Theme::dim()),
-            Span::styled("GodMode   ", Theme::error()),
-            Span::styled("- Maximum optimization", Theme::dim()),
+            Span::styled("  🔴 GodMode   ", Theme::error()),
+            Span::styled("→ Maximum system control", Theme::dim()),
         ]),
         Line::from(""),
-        Line::from(Span::styled(
-            "⚠️  Always test in a VM first",
-            Theme::warning(),
-        )),
-        Line::from(Span::styled(
-            "⚠️  Create a system backup before proceeding",
-            Theme::warning(),
-        )),
+        Line::from(vec![
+            Span::styled("⚠ ", Theme::warning()),
+            Span::styled("TEST IN VM • BACKUP SYSTEM", Theme::warning().add_modifier(Modifier::BOLD)),
+        ]),
     ];
 
-    let content = Paragraph::new(welcome_text).alignment(Alignment::Center);
-    frame.render_widget(content, content_area);
+    let content = Paragraph::new(welcome_text);
+    frame.render_widget(content, welcome_inner);
 
-    // Buttons
-    let button_chunks = Layout::default()
-        .direction(Direction::Horizontal)
-        .constraints([
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-            Constraint::Percentage(25),
-        ])
-        .split(chunks[2]);
+    // System info panel
+    widgets::draw_system_info(frame, right_chunks[1], &state.system_info);
 
-    let buttons = ["▶ Start Wizard", "📊 View Status", "❌ Exit"];
-    for (i, label) in buttons.iter().enumerate() {
-        widgets::draw_button(frame, button_chunks[i], label, state.selected_index == i);
-    }
+    // Cleanup estimate panel
+    widgets::draw_cleanup_estimate(frame, right_chunks[2], &state.cleanup_estimate);
 
-    // Help
+    // Actions block
+    let actions_block = Block::default()
+        .borders(Borders::ALL)
+        .border_style(Theme::border())
+        .title(Span::styled(" ACTIONS ", Theme::title()));
+    let actions_inner = actions_block.inner(right_chunks[3]);
+    frame.render_widget(actions_block, right_chunks[3]);
+
+    let buttons = [
+        ("▶ Start Wizard", 0),
+        ("📊 View Status", 1),
+        ("❌ Exit", 2),
+    ];
+    
+    let action_text: Vec<Line> = buttons
+        .iter()
+        .enumerate()
+        .map(|(i, (label, _))| {
+            let style = if state.selected_index == i {
+                Theme::selected()
+            } else {
+                Theme::normal()
+            };
+            let prefix = if state.selected_index == i { "▶ " } else { "  " };
+            Line::from(vec![
+                Span::styled(prefix, style),
+                Span::styled(*label, style),
+            ])
+        })
+        .collect();
+
+    let actions = Paragraph::new(action_text);
+    frame.render_widget(actions, actions_inner);
+
+    // Help bar
     widgets::draw_help(
         frame,
-        chunks[3],
-        &[("←/→", "Select"), ("Enter", "Confirm"), ("q", "Quit")],
+        main_chunks[2],
+        &[("↑/↓", "Navigate"), ("Enter", "Select"), ("q", "Quit")],
     );
 }
 
 fn handle_welcome_key(state: &mut TuiState, key: KeyCode) -> Result<bool> {
     match key {
-        KeyCode::Left => state.select_up(3),
-        KeyCode::Right => state.select_down(3),
+        KeyCode::Up => state.select_up(3),
+        KeyCode::Down => state.select_down(3),
         KeyCode::Enter => match state.selected_index {
             0 => state.next_screen(), // Start wizard
             1 => state.screen = WizardState::StatusDashboard,
@@ -180,88 +206,168 @@ fn handle_welcome_key(state: &mut TuiState, key: KeyCode) -> Result<bool> {
 fn draw_layer_select(frame: &mut Frame, state: &TuiState) {
     let area = frame.size();
 
-    let chunks = Layout::default()
+    // Main layout
+    let main_chunks = Layout::default()
         .direction(Direction::Vertical)
-        .margin(2)
+        .margin(1)
         .constraints([
-            Constraint::Length(3),  // Title
-            Constraint::Min(10),    // Layer list
+            Constraint::Length(8),  // Header with 3D logo
+            Constraint::Min(10),    // Content
             Constraint::Length(1),  // Help
         ])
         .split(area);
 
-    // Title
-    let title = Paragraph::new(vec![
-        Line::from(Span::styled("Select Optimization Layer", Theme::title())),
-        Line::from(Span::styled("Step 1/5", Theme::dim())),
-    ])
-    .alignment(Alignment::Center);
-    frame.render_widget(title, chunks[0]);
+    // Header
+    widgets::draw_tech_header(frame, main_chunks[0], "2.0");
 
-    // Layer list
+    // Content: Sidebar | Main
+    let content_chunks = Layout::default()
+        .direction(Direction::Horizontal)
+        .margin(1)
+        .constraints([
+            Constraint::Length(30),  // Sidebar
+            Constraint::Min(40),     // Main content
+        ])
+        .split(main_chunks[1]);
+
+    // Left sidebar with selectable layers
     let layers = state.available_layers();
     let applied = state.ctx.applied_layers();
-
-    let list_items: Vec<ListItem> = layers
+    
+    let sidebar_items: Vec<(&str, &str, bool)> = layers
         .iter()
         .enumerate()
         .map(|(i, layer)| {
             let is_selected = i == state.selected_index;
-            let is_applied = applied.contains(layer);
-            let can_apply = layer.can_apply(&applied);
-
-            let prefix = if is_selected { "▶ " } else { "  " };
-            let status = if is_applied {
-                " [APPLIED]"
-            } else if !can_apply {
-                " [LOCKED]"
-            } else {
-                ""
+            let icon = match layer {
+                Layer::Minimal => "🟢",
+                Layer::Moderate => "🔵",
+                Layer::Ultimate => "🟡",
+                Layer::GodMode => "🔴",
             };
-
-            let risk = layer.risk_level();
-            let risk_color = Theme::risk_color(&risk);
-
-            let style = if is_selected {
-                Theme::selected()
-            } else if !can_apply {
-                Theme::dim()
-            } else {
-                Theme::normal()
-            };
-
-            let lines = vec![
-                Line::from(vec![
-                    Span::styled(prefix, style),
-                    Span::styled(layer.display_name(), style.add_modifier(Modifier::BOLD)),
-                    Span::styled(
-                        format!(" [{}]", risk),
-                        ratatui::style::Style::default().fg(risk_color),
-                    ),
-                    Span::styled(status, Theme::dim()),
-                ]),
-                Line::from(vec![
-                    Span::raw("    "),
-                    Span::styled(layer.description(), Theme::dim()),
-                ]),
-                Line::from(""),
-            ];
-
-            ListItem::new(lines)
+            (layer.display_name(), icon, is_selected)
         })
         .collect();
 
-    let list = List::new(list_items).block(
-        Block::default()
+    widgets::draw_sidebar(frame, content_chunks[0], "SELECT LAYER", &sidebar_items, true);
+
+    // Right side: Layer details
+    if let Some(current_layer) = layers.get(state.selected_index) {
+        let is_applied = applied.contains(current_layer);
+        let can_apply = current_layer.can_apply(&applied);
+        
+        let right_chunks = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Length(8),   // Layer info
+                Constraint::Min(8),      // Details
+                Constraint::Length(6),   // Status/Actions
+            ])
+            .split(content_chunks[1]);
+
+        // Layer info block
+        let info_block = Block::default()
             .borders(Borders::ALL)
-            .border_style(Theme::border_focus()),
-    );
-    frame.render_widget(list, chunks[1]);
+            .border_style(Theme::border_focus())
+            .title(Span::styled(
+                format!(" {} LAYER ", current_layer.display_name().to_uppercase()),
+                Theme::title(),
+            ));
+        let info_inner = info_block.inner(right_chunks[0]);
+        frame.render_widget(info_block, right_chunks[0]);
+
+        let risk = current_layer.risk_level();
+        let info_text = vec![
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("Risk Level:    ", Theme::dim()),
+                Span::styled(format!("{}", risk), Theme::risk_style(&risk).add_modifier(Modifier::BOLD)),
+            ]),
+            Line::from(vec![
+                Span::styled("Reversible:    ", Theme::dim()),
+                Span::styled(
+                    if current_layer.is_reversible() { "Yes" } else { "Partial" },
+                    if current_layer.is_reversible() { Theme::success() } else { Theme::warning() }
+                ),
+            ]),
+            Line::from(vec![
+                Span::styled("Status:        ", Theme::dim()),
+                Span::styled(
+                    if is_applied { "APPLIED" } else if can_apply { "AVAILABLE" } else { "LOCKED" },
+                    if is_applied { Theme::success() } 
+                    else if can_apply { Theme::info() } 
+                    else { Theme::dim() }
+                ),
+            ]),
+        ];
+
+        let info = Paragraph::new(info_text);
+        frame.render_widget(info, info_inner);
+
+        // Details block
+        let details_block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Theme::border())
+            .title(Span::styled(" DESCRIPTION ", Theme::title()));
+        let details_inner = details_block.inner(right_chunks[1]);
+        frame.render_widget(details_block, right_chunks[1]);
+
+        let details_text = vec![
+            Line::from(""),
+            Line::from(Span::styled(current_layer.description(), Theme::normal())),
+            Line::from(""),
+            Line::from(Span::styled("This layer will:", Theme::dim())),
+            Line::from(Span::styled("  • Configure system settings", Theme::dim())),
+            Line::from(Span::styled("  • Modify services and tasks", Theme::dim())),
+            Line::from(Span::styled("  • Apply security policies", Theme::dim())),
+            Line::from(""),
+            Line::from(vec![
+                Span::styled("⚠ ", Theme::warning()),
+                Span::styled("Review changes before applying", Theme::warning()),
+            ]),
+        ];
+
+        let details = Paragraph::new(details_text).wrap(Wrap { trim: false });
+        frame.render_widget(details, details_inner);
+
+        // Actions block
+        let actions_block = Block::default()
+            .borders(Borders::ALL)
+            .border_style(Theme::border())
+            .title(Span::styled(" ACTIONS ", Theme::title()));
+        let actions_inner = actions_block.inner(right_chunks[2]);
+        frame.render_widget(actions_block, right_chunks[2]);
+
+        let action_text = if is_applied {
+            vec![
+                Line::from(""),
+                Line::from(Span::styled("✓ This layer is already applied", Theme::success())),
+                Line::from(""),
+                Line::from(Span::styled("Press [Esc] to go back", Theme::dim())),
+            ]
+        } else if !can_apply {
+            vec![
+                Line::from(""),
+                Line::from(Span::styled("⚠ Prerequisites not met", Theme::warning())),
+                Line::from(""),
+                Line::from(Span::styled("Apply lower layers first", Theme::dim())),
+            ]
+        } else {
+            vec![
+                Line::from(""),
+                Line::from(Span::styled("▶ Press [Enter] to continue", Theme::highlight().add_modifier(Modifier::BOLD))),
+                Line::from(Span::styled("  Press [Esc] to go back", Theme::dim())),
+            ]
+        };
+
+        let actions = Paragraph::new(action_text);
+        frame.render_widget(actions, actions_inner);
+    }
 
     // Help
     widgets::draw_help(
         frame,
-        chunks[2],
+        main_chunks[2],
         &[
             ("↑/↓", "Navigate"),
             ("Enter", "Select"),
