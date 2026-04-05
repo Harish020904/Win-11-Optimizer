@@ -45,7 +45,36 @@ The optimizer will **never** modify these protected Windows components:
 - Administrator privileges
 - PowerShell 5.1+ (built into Windows 11)
 
-### Installation
+### Installation (Rust TUI - Recommended)
+
+One-liner install:
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/Harish020904/Win-11-Optimizer/main/scripts/install.ps1 | iex
+```
+
+Or download manually from [Releases](https://github.com/Harish020904/Win-11-Optimizer/releases).
+
+### Using the TUI
+
+```powershell
+# Launch interactive wizard (recommended)
+win11-optimizer
+
+# Preview changes for a specific layer
+win11-optimizer --preview minimal
+
+# Apply a layer (requires admin)
+win11-optimizer --apply minimal
+
+# Rollback a layer
+win11-optimizer --rollback minimal
+
+# View current status
+win11-optimizer --status
+```
+
+### Using PowerShell Directly (Legacy)
 
 ```powershell
 # Download and run (verify signature first)
@@ -115,7 +144,22 @@ test.ps1         - Pester unit tests
 
 ## Development
 
-### Building from Source
+### Building from Source (Rust)
+
+```bash
+# Install Rust (https://rustup.rs)
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+
+# Clone and build
+git clone https://github.com/Harish020904/Win-11-Optimizer
+cd Win-11-Optimizer
+cargo build --release
+
+# Run
+./target/release/win11-optimizer
+```
+
+### Building from Source (PowerShell)
 
 This project uses a read/write-only build host. All execution, testing, and signing happens in Windows VMs or CI runners.
 
