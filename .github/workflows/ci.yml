@@ -18,13 +18,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell
-        uses: PowerShell/PowerShell@v2
-
       - name: Install PSScriptAnalyzer
+        shell: pwsh
         run: Install-Module PSScriptAnalyzer -Force -Scope CurrentUser
 
       - name: Run PSScriptAnalyzer
+        shell: pwsh
         run: |
           $results = Invoke-ScriptAnalyzer -Path . -Recurse -Settings .github/psscriptanalyzer.psd1
           if ($results) {
@@ -40,13 +39,12 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell
-        uses: PowerShell/PowerShell@v2
-
       - name: Install Pester
+        shell: pwsh
         run: Install-Module Pester -Force -Scope CurrentUser -MinimumVersion 5.5.0
 
       - name: Run Pester tests
+        shell: pwsh
         run: |
           $result = Invoke-Pester -Path ./tests/unit -OutputFormat NUnitXml -OutputFile test-results.xml -PassThru
           if ($result.FailedCount -gt 0) {
@@ -54,7 +52,7 @@ jobs:
           }
 
       - name: Upload test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: unit-test-results
@@ -68,10 +66,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup PowerShell
-        uses: PowerShell/PowerShell@v2
-
       - name: Install Pester
+        shell: pwsh
         run: Install-Module Pester -Force -Scope CurrentUser -MinimumVersion 5.5.0
 
       - name: Run Minimal layer integration tests
@@ -100,7 +96,7 @@ jobs:
           powershell -NoProfile -ExecutionPolicy Bypass -File ./runtime/godmode.ps1 --manifest ./runtime/manifests/minimal.yaml --rollback
 
       - name: Upload integration test results
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         if: always()
         with:
           name: integration-test-results-minimal
@@ -112,13 +108,17 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          # Fetch all history so TruffleHog can scan it
+          fetch-depth: 0
 
       - name: Scan for secrets
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          # Only scan the diff on pull requests, scan full history on push
+          base: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || '' }}
+          head: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.sha || '' }}
 
   build-info:
     name: Generate Build Info
@@ -158,7 +158,7 @@ jobs:
           cat build-info.json
 
       - name: Upload build info
-        uses: actions/upload-artifact@v3
+        uses: actions/upload-artifact@v4
         with:
           name: build-info
           path: build-info.json
