@@ -63,7 +63,7 @@ function Write-Log {
         }
         $json | Out-File -FilePath $logFile -Append -Encoding UTF8
     } catch {
-        # Silently fail if log directory cannot be created
+        Write-Verbose "Could not write to log file: $_"
     }
 
     # Console output with color

@@ -163,7 +163,7 @@ function Write-Log {
     try {
         $logEntry | Out-File -FilePath $logFile -Append -Encoding UTF8
     } catch {
-        # Silently fail if log directory doesn't exist yet
+        Write-Verbose "Could not write to log file: $_"
     }
 }
 
