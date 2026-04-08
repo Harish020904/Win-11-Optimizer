@@ -11,7 +11,6 @@ Describe 'Minimal Layer Integration — Enhanced' -Tags @('Integration', 'Layer'
         $manifestPath = "$PSScriptRoot/../../runtime/manifests/minimal.yaml"
         $runtimePath  = "$PSScriptRoot/../../runtime/godmode.ps1"
         $modulesBase  = "$PSScriptRoot/../../modules/minimal"
-        $statePath    = "$PSScriptRoot/../../suggested_patches/runtime-state-fix-F2.ps1"
 
         # Temp snapshot location for tests
         $testBackupBase = Join-Path $env:TEMP "WinOptimizer-test-$(Get-Random)"

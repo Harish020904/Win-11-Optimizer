@@ -8,7 +8,6 @@
 Describe 'Disable WER Module' -Tags @('Unit', 'GodMode', 'WER') {
     BeforeAll {
         $modulePath = "$PSScriptRoot/../../../modules/godmode/disable-wer"
-        $patchPath  = "$PSScriptRoot/../../../suggested_patches"
     }
 
     Context 'Module Structure' {

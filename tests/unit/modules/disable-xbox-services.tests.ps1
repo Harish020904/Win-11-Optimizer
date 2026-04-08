@@ -8,7 +8,6 @@
 Describe 'Disable Xbox Services Module' -Tags @('Unit', 'Moderate', 'Xbox') {
     BeforeAll {
         $modulePath = "$PSScriptRoot/../../../modules/moderate/disable-xbox-services"
-        $patchPath  = "$PSScriptRoot/../../../suggested_patches"
     }
 
     Context 'Module Structure' {

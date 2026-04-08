@@ -19,7 +19,7 @@ if (-not (Test-Path $stateFile)) {
     exit 1
 }
 
-$state = Get-Content $stateFile -Raw | ConvertFrom-Json
+$null = Get-Content $stateFile -Raw | ConvertFrom-Json
 
 # --- Verify each rule exists, is enabled, blocks outbound, and has IP addresses ---
 $telemetryHosts = @(
