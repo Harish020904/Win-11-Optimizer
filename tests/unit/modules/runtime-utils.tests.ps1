@@ -29,8 +29,8 @@ Describe 'Runtime utils.ps1' -Tags @('Unit', 'Runtime', 'Utils') {
     }
 
     Context 'Required Functions Defined' {
-        It 'defines Test-AdminPrivileges' {
-            $content | Should -Match 'function Test-AdminPrivileges'
+        It 'defines Test-AdminPrivilege' {
+            $content | Should -Match 'function Test-AdminPrivilege'
         }
 
         It 'defines Test-ProtectedComponent' {

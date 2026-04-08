@@ -11,13 +11,11 @@ pub fn init(verbose: bool) -> Result<()> {
         EnvFilter::new("info")
     };
 
-    // Console logging with colors
     let console_layer = fmt::layer()
         .with_target(false)
         .with_level(true)
         .with_ansi(true);
 
-    // File logging (JSON format)
     let log_dir = std::path::PathBuf::from(r"C:\ProgramData\WinOptimizer\logs");
     let _ = std::fs::create_dir_all(&log_dir);
 
@@ -45,7 +43,6 @@ pub fn init(verbose: bool) -> Result<()> {
             .with(file_layer)
             .init();
     } else {
-        // Fall back to console-only logging
         tracing_subscriber::registry()
             .with(filter)
             .with(console_layer)
@@ -55,7 +52,6 @@ pub fn init(verbose: bool) -> Result<()> {
     Ok(())
 }
 
-/// Log an operation for audit purposes
 pub fn log_operation(operation: &str, layer: Option<&str>, module: Option<&str>, success: bool) {
     if success {
         tracing::info!(
@@ -74,7 +70,6 @@ pub fn log_operation(operation: &str, layer: Option<&str>, module: Option<&str>,
     }
 }
 
-/// Log a security event
 pub fn log_security_event(event: &str, details: &str) {
     tracing::warn!(
         event_type = "security",

@@ -474,7 +474,7 @@ function Invoke-ModuleApply {
 
     try {
         if (Test-Path (Join-Path $ModulePath "apply.ps1")) {
-            $result = & (Join-Path $ModulePath "apply.ps1")
+            $null = & (Join-Path $ModulePath "apply.ps1")
             if ($LASTEXITCODE -ne 0) {
                 throw "Apply script returned non-zero exit code"
             }

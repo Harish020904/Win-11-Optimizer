@@ -42,7 +42,7 @@ function Get-WinOptimizerStatePath {
     return Join-Path (Get-WinOptimizerConfigPath) "state"
 }
 
-function Test-AdminPrivileges {
+function Test-AdminPrivilege {
     <#
     .SYNOPSIS
         Check if the current session has administrator privileges
@@ -239,7 +239,7 @@ function Test-DefenderStatus {
     }
 }
 
-function Compare-Snapshots {
+function Compare-Snapshot {
     <#
     .SYNOPSIS
         Compare two system snapshots
@@ -261,6 +261,8 @@ function Compare-Snapshots {
         [string]$AfterPath
     )
 
+    # Initialize result hashtable (modified and returned below)
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
     $result = @{
         ServicesAdded = @()
         ServicesRemoved = @()

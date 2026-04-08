@@ -11,7 +11,6 @@ Describe 'Minimal Layer Integration — Enhanced' -Tags @('Integration', 'Layer'
         $manifestPath = "$PSScriptRoot/../../runtime/manifests/minimal.yaml"
         $runtimePath  = "$PSScriptRoot/../../runtime/godmode.ps1"
         $modulesBase  = "$PSScriptRoot/../../modules/minimal"
-        $statePath    = "$PSScriptRoot/../../suggested_patches/runtime-state-fix-F2.ps1"
 
         # Temp snapshot location for tests
         $testBackupBase = Join-Path $env:TEMP "WinOptimizer-test-$(Get-Random)"
@@ -171,7 +170,7 @@ Describe 'Minimal Layer VM Integration — Apply/Verify/Rollback Cycle' -Tags @(
     Context 'Disable-Telemetry Full Lifecycle' {
         It 'apply.ps1 exits without error' -Tag 'VM' {
             # RUN INSIDE WINDOWS VM OR CI ONLY
-            $result = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
+            $null = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
             $LASTEXITCODE | Should -Be 0
         }
 
@@ -183,7 +182,7 @@ Describe 'Minimal Layer VM Integration — Apply/Verify/Rollback Cycle' -Tags @(
 
         It 'apply.ps1 is idempotent (second run succeeds)' -Tag 'VM' {
             # RUN INSIDE WINDOWS VM OR CI ONLY
-            $result = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
+            $null = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
             $LASTEXITCODE | Should -Be 0
         }
 
