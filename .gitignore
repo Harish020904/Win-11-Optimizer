@@ -7,4 +7,7 @@ CLAUDE.md
 issues.md
 preview.gif
 REVIEW_SUMMARY.md
-SECURITY.md
+
+# Prevent local Windows log files from being committed
+C:/ProgramData/
+**/logs/*.log
