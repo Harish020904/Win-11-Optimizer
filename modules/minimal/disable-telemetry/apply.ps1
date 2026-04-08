@@ -36,7 +36,9 @@ foreach ($svc in $services) {
                 StartType = $service.StartType.ToString()
             }
         }
-    } catch {}
+    } catch {
+        Write-Verbose "Could not get service state for $svc: $_"
+    }
 }
 $serviceStates | ConvertTo-Json | Out-File "$backupDir\services.json"
 

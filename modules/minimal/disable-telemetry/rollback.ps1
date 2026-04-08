@@ -2,7 +2,6 @@
 
 $ErrorActionPreference = "Stop"
 
-$services = @('DiagTrack', 'dmwappushservice')
 $moduleId = "disable-telemetry"
 
 # ROLLBACK-001: Read backup path from state.json instead of timestamp-based selection
@@ -56,7 +55,7 @@ try {
     Remove-ItemProperty -Path $policyPath -Name "AllowTelemetry" -ErrorAction SilentlyContinue
     Write-Host "    Removed telemetry policy" -ForegroundColor Green
 } catch {
-    # Ignore
+    Write-Verbose "Could not remove telemetry policy: $_"
 }
 
 # ROLLBACK-001: Remove backup entry from state.json after successful rollback

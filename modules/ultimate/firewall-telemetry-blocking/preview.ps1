@@ -12,8 +12,7 @@ $existingRules = Get-NetFirewallRule | Where-Object {
 if ($existingRules) {
     foreach ($rule in $existingRules) {
         $enabledColor = if ($rule.Enabled -eq 'True') { 'Green' } else { 'Yellow' }
-        $actionColor = if ($rule.Action -eq 'Block') { 'Red' } else { 'Green' }
-        Write-Host "    $($rule.DisplayName.PadRight(40)) [$($rule.Enabled)]" -ForegroundColor $enabledColor
+        Write-Host "    $($rule.DisplayName.PadRight(40)) [$($rule.Enabled)] - $($rule.Action)" -ForegroundColor $enabledColor
     }
 } else {
     Write-Host "    No telemetry blocking rules found" -ForegroundColor DarkGray

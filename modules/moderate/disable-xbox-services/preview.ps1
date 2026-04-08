@@ -19,7 +19,9 @@ foreach ($svc in $services) {
             }
             Write-Host "    $($service.Name.PadRight(25)) - $($service.Status) (Start: $($service.StartType))" -ForegroundColor $statusColor
         }
-    } catch {}
+    } catch {
+        Write-Verbose "Could not get service info: $_"
+    }
 }
 
 if (-not $found) {

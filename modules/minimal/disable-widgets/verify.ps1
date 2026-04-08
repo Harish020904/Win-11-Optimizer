@@ -26,7 +26,7 @@ try {
         }
     }
 } catch {
-    # Policy might not exist, which is acceptable
+    Write-Verbose "Policy might not exist, which is acceptable: $_"
 }
 
 if ($allVerified) {

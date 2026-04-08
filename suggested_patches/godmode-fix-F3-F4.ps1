@@ -59,7 +59,7 @@ function Invoke-ModuleApply {
         $applyScript = Join-Path $ModulePath "apply.ps1"
         if (Test-Path $applyScript) {
             # SAFE: Use call operator, never Invoke-Expression
-            $result = & $applyScript
+            $null = & $applyScript
             if ($LASTEXITCODE -ne 0) {
                 throw "Apply script returned non-zero exit code"
             }
