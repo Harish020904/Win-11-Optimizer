@@ -37,9 +37,17 @@ jobs:
       - name: Run PSScriptAnalyzer
         shell: pwsh
         run: |
-          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Settings .github/psscriptanalyzer.psd1
-          if ($results) {
-            $results | Format-Table -AutoSize
+          # Run full analysis on non-test files
+          $mainResults = Invoke-ScriptAnalyzer -Path . -Recurse -Settings .github/psscriptanalyzer.psd1 -ExcludeRule @() |
+            Where-Object { $_.ScriptPath -notmatch '\.tests\.ps1$' }
+          
+          # Run analysis on test files excluding PSUseDeclaredVarsMoreThanAssignments
+          # (Pester's BeforeAll scoping causes false positives for this rule)
+          $testResults = Invoke-ScriptAnalyzer -Path ./tests -Recurse -Settings .github/psscriptanalyzer.psd1 -ExcludeRule 'PSUseDeclaredVarsMoreThanAssignments'
+          
+          $allResults = @($mainResults) + @($testResults) | Where-Object { $_ }
+          if ($allResults) {
+            $allResults | Format-Table -AutoSize
             exit 1
           }
 

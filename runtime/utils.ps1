@@ -261,6 +261,8 @@ function Compare-Snapshot {
         [string]$AfterPath
     )
 
+    # Initialize result hashtable (modified and returned below)
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute('PSUseDeclaredVarsMoreThanAssignments', '')]
     $result = @{
         ServicesAdded = @()
         ServicesRemoved = @()

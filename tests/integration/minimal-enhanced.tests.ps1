@@ -170,7 +170,7 @@ Describe 'Minimal Layer VM Integration — Apply/Verify/Rollback Cycle' -Tags @(
     Context 'Disable-Telemetry Full Lifecycle' {
         It 'apply.ps1 exits without error' -Tag 'VM' {
             # RUN INSIDE WINDOWS VM OR CI ONLY
-            $result = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
+            $null = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
             $LASTEXITCODE | Should -Be 0
         }
 
@@ -182,7 +182,7 @@ Describe 'Minimal Layer VM Integration — Apply/Verify/Rollback Cycle' -Tags @(
 
         It 'apply.ps1 is idempotent (second run succeeds)' -Tag 'VM' {
             # RUN INSIDE WINDOWS VM OR CI ONLY
-            $result = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
+            $null = & "$modulesBase/disable-telemetry/apply.ps1" 2>&1
             $LASTEXITCODE | Should -Be 0
         }
 
