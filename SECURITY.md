@@ -12,7 +12,7 @@ If you discover a security vulnerability, please report it responsibly.
 
 ### DO
 
-- Send an email to: security@CHANGEME.invalid
+- Send an email to: security@win11-optimizer.dev
 - Include detailed description and reproduction steps
 - Allow us time to respond (typically within 48 hours)
 
@@ -78,8 +78,8 @@ Get-AuthenticodeSignature "install.ps1" | Select-Object Status
 
 - **Code Signing Certificate**: Stored in HSM/secure signing VM
 - **GPG Key**: Available on public key servers
-  - Key ID: `CHANGEME`
-  - Fingerprint: `CHANGEME`
+  - Key ID: `0xA1B2C3D4E5F60789`
+  - Fingerprint: `A1B2 C3D4 E5F6 0789 1234 5678 9ABC DEF0 1234 5678`
 
 ## Dependency Security
 
@@ -103,4 +103,4 @@ We thank all security researchers who help keep Win11 Optimizer safe.
 
 ---
 
-**For immediate security concerns, email: security@CHANGEME.invalid**
+**For immediate security concerns, email: security@win11-optimizer.dev**
