@@ -39,9 +39,10 @@ powershell -ExecutionPolicy Bypass -File "$env:TEMP\install.ps1"
 
 ### Method 2: Manual Install
 
-1. Download the latest release from [GitHub Releases](https://github.com/yourorg/win11-optimizer/releases/latest)
+1. Download the latest release from [GitHub Releases](https://github.com/Harish020904/Win-11-Optimizer/releases/latest)
 2. Extract the ZIP file to `C:\Win11Optimizer\`
-3. Right-click `Win11 Optimizer.ps1` → "Run as Administrator"
+3. Right-click PowerShell → "Run as Administrator"
+4. Launch `C:\Win11Optimizer\win11-optimizer-tui.exe`
 
 ## Installation Locations
 
@@ -49,7 +50,9 @@ powershell -ExecutionPolicy Bypass -File "$env:TEMP\install.ps1"
 
 ```
 C:\Win11Optimizer\          # Main installation directory
-  ├── runtime\              # Executable scripts
+  ├── win11-optimizer-tui.exe # Ratatui frontend
+  ├── WinOptimizer.ps1      # Headless IPC backend and plaintext fallback
+  ├── runtime\              # Manifests and legacy runtime support
   ├── modules\              # Optimization modules
   ├── manifests\            # Layer manifests
   └── logs\                 # Execution logs
@@ -69,7 +72,7 @@ Expand-Archive -Path win11-optimizer.zip -DestinationPath D:\Tools\win11-optimiz
 
 # Run from extracted directory
 cd D:\Tools\win11-optimizer
-.\runtime\godmode.ps1 --help
+.\win11-optimizer-tui.exe
 ```
 
 ## Post-Installation Verification
@@ -78,7 +81,8 @@ After installation, verify the system:
 
 ```powershell
 # Check that the optimizer script exists
-Test-Path C:\Win11Optimizer\runtime\godmode.ps1
+Test-Path C:\Win11Optimizer\win11-optimizer-tui.exe
+Test-Path C:\Win11Optimizer\WinOptimizer.ps1
 
 # Check backup directory
 Test-Path C:\ProgramData\WinOptimizer\backup
@@ -96,7 +100,7 @@ To completely remove Win11 Optimizer:
 
 ```powershell
 # 1. Rollback any applied layers first
-.\runtime\godmode.ps1 --rollback-all
+.\win11-optimizer-tui.exe
 
 # 2. Remove installation directory
 Remove-Item -Path C:\Win11Optimizer -Recurse -Force
@@ -123,7 +127,7 @@ Remove-Item -Path "$env:APPDATA\Microsoft\Windows\Start Menu\Programs\Win11 Opti
 Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 
 # Or bypass for single run
-powershell -ExecutionPolicy Bypass -File .\runtime\godmode.ps1
+powershell -ExecutionPolicy Bypass -File .\WinOptimizer.ps1
 ```
 
 ### Administrator Privileges Required
@@ -146,10 +150,10 @@ Right-click PowerShell and select "Run as Administrator"
 
 ```powershell
 # Check module file exists
-Test-Path C:\Win11Optimizer\modules\minimal\module.yaml
+Test-Path C:\Win11Optimizer\modules\minimal\disable-telemetry\metadata.yaml
 
 # Check for file corruption (re-download if needed)
-Get-FileHash -Algorithm SHA256 C:\Win11Optimizer\runtime\godmode.ps1
+Get-FileHash -Algorithm SHA256 C:\Win11Optimizer\win11-optimizer-tui.exe
 ```
 
 ### Windows Defender Blocking

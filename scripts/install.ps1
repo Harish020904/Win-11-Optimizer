@@ -13,7 +13,7 @@ $ErrorActionPreference = 'Stop'
 # Configuration
 $repo = "Harish020904/Win-11-Optimizer"
 $installDir = "$env:LOCALAPPDATA\Win11Optimizer"
-$binName = "win11-optimizer.exe"
+$binName = "win11-optimizer-tui.exe"
 
 function Write-Step {
     param([string]$Message)
@@ -78,13 +78,22 @@ try {
 
     # Download binary
     if ($version -ne "dev") {
-        $asset = $release.assets | Where-Object { $_.name -like "win11-optimizer-*.exe" -or $_.name -eq "win11-optimizer.exe" } | Select-Object -First 1
+        $asset = $release.assets | Where-Object { $_.name -eq $binName -or $_.name -like "win11-optimizer-tui-*.zip" } | Select-Object -First 1
         
         if ($asset) {
             Write-Step "Downloading $($asset.name)..."
             $exePath = Join-Path $installDir $binName
-            Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $exePath -UseBasicParsing
-            Write-Success "Downloaded to $exePath"
+            $downloadedAssetPath = $exePath
+            if ($asset.name -like "*.zip") {
+                $zipPath = Join-Path $env:TEMP $asset.name
+                $downloadedAssetPath = $zipPath
+                Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $zipPath -UseBasicParsing
+                Expand-Archive -Path $zipPath -DestinationPath $installDir -Force
+            }
+            else {
+                Invoke-WebRequest -Uri $asset.browser_download_url -OutFile $exePath -UseBasicParsing
+            }
+            Write-Success "Installed to $installDir"
             
             # Verify checksum if available
             $checksumAsset = $release.assets | Where-Object { $_.name -eq "checksums.txt" }
@@ -92,7 +101,7 @@ try {
                 Write-Step "Verifying checksum..."
                 $checksums = (Invoke-WebRequest -Uri $checksumAsset.browser_download_url -UseBasicParsing).Content
                 $expectedHash = ($checksums -split "`n" | Where-Object { $_ -like "*$($asset.name)*" }) -replace "^(\S+).*", '$1'
-                $actualHash = (Get-FileHash -Path $exePath -Algorithm SHA256).Hash
+                $actualHash = (Get-FileHash -Path $downloadedAssetPath -Algorithm SHA256).Hash
                 
                 if ($expectedHash -and $expectedHash -eq $actualHash) {
                     Write-Success "Checksum verified"
@@ -100,6 +109,9 @@ try {
                 else {
                     Write-Host "    Warning: Checksum verification skipped or failed" -ForegroundColor Yellow
                 }
+            }
+            if ($asset.name -like "*.zip") {
+                Remove-Item $downloadedAssetPath -Force -ErrorAction SilentlyContinue
             }
         }
         else {
@@ -122,10 +134,11 @@ try {
         $extractPath = Join-Path $env:TEMP "win11-optimizer-extract"
         Expand-Archive -Path $zipPath -DestinationPath $extractPath -Force
         
-        # Copy modules and runtime
+        # Copy modules, runtime, and dispatcher
         $srcPath = Join-Path $extractPath "Win-11-Optimizer-main"
         Copy-Item -Path (Join-Path $srcPath "modules") -Destination $installDir -Recurse -Force
         Copy-Item -Path (Join-Path $srcPath "runtime") -Destination $installDir -Recurse -Force
+        Copy-Item -Path (Join-Path $srcPath "WinOptimizer.ps1") -Destination $installDir -Force
         
         # Cleanup
         Remove-Item $zipPath -Force -ErrorAction SilentlyContinue
@@ -134,8 +147,8 @@ try {
         Write-Success "Modules installed"
         
         Write-Host ""
-        Write-Host "Note: Development version installed. Binary not available yet." -ForegroundColor Yellow
-        Write-Host "Run the PowerShell scripts directly from: $installDir\runtime\godmode.ps1" -ForegroundColor Yellow
+        Write-Host "Note: Development version installed. Build the TUI from source to create $binName." -ForegroundColor Yellow
+        Write-Host "Fallback command: $installDir\WinOptimizer.ps1" -ForegroundColor Yellow
     }
 
     # Add to PATH if binary exists
@@ -161,17 +174,16 @@ try {
     Write-Host ""
     
     if (Test-Path $exePath) {
-        Write-Host "Run 'win11-optimizer' to start the TUI wizard." -ForegroundColor Cyan
+        Write-Host "Run 'win11-optimizer-tui' to start the TUI." -ForegroundColor Cyan
         Write-Host ""
         Write-Host "Usage:" -ForegroundColor White
-        Write-Host "  win11-optimizer              # Start TUI wizard" -ForegroundColor Gray
-        Write-Host "  win11-optimizer --status     # Show current status" -ForegroundColor Gray
-        Write-Host "  win11-optimizer --help       # Show help" -ForegroundColor Gray
+        Write-Host "  win11-optimizer-tui          # Start TUI" -ForegroundColor Gray
+        Write-Host "  .\WinOptimizer.ps1           # Plaintext fallback" -ForegroundColor Gray
     }
     else {
         Write-Host "Run the optimizer with:" -ForegroundColor Cyan
         Write-Host "  cd $installDir" -ForegroundColor Gray
-        Write-Host "  .\runtime\godmode.ps1 --help" -ForegroundColor Gray
+        Write-Host "  .\WinOptimizer.ps1" -ForegroundColor Gray
     }
     Write-Host ""
     

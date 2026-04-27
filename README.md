@@ -62,50 +62,26 @@ Or download manually from [Releases](https://github.com/Harish020904/Win-11-Opti
 ### Using the TUI
 
 ```powershell
-# Launch interactive wizard (recommended)
-win11-optimizer
+# Build the ratatui frontend
+.\scripts\build-tui.ps1
 
-# Preview changes for a specific layer
-win11-optimizer --preview minimal
-
-# Apply a layer (requires admin)
-win11-optimizer --apply minimal
-
-# Rollback a layer
-win11-optimizer --rollback minimal
-
-# View current status
-win11-optimizer --status
+# Launch the interactive optimizer
+.\win11-optimizer-tui.exe
 ```
 
-### Using PowerShell Directly (Legacy)
+The Rust binary owns the terminal and starts PowerShell as a headless backend:
 
 ```powershell
-# Download and run (verify signature first)
-Invoke-WebRequest -Uri "https://github.com/yourorg/win11-optimizer/releases/latest/download/install.ps1" -OutFile "install.ps1"
-
-# Verify SHA256 (check against published checksums)
-$hash = Get-FileHash -Algorithm SHA256 "install.ps1"
-# Compare $hash.Hash with the published SHA256
-
-# Run installer
-powershell -ExecutionPolicy Bypass -File "install.ps1"
+powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -File .\WinOptimizer.ps1 --mode ipc
 ```
 
-### Usage
+Do not launch the IPC command directly unless you are testing the JSON protocol.
+
+### PowerShell Fallback
 
 ```powershell
-# Preview what Minimal layer would do (dry-run)
-.\runtime\godmode.ps1 --manifest runtime\manifests\minimal.yaml --preview
-
-# Apply Minimal layer
-.\runtime\godmode.ps1 --manifest runtime\manifests\minimal.yaml --apply
-
-# Verify system after applying
-.\runtime\godmode.ps1 --manifest runtime\manifests\minimal.yaml --verify
-
-# Rollback Minimal layer
-.\runtime\godmode.ps1 --manifest runtime\manifests\minimal.yaml --rollback
+# Degraded text mode if the Rust binary is unavailable
+.\WinOptimizer.ps1
 ```
 
 ## Documentation
@@ -157,10 +133,10 @@ curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
 # Clone and build
 git clone https://github.com/Harish020904/Win-11-Optimizer
 cd Win-11-Optimizer
-cargo build --release
+.\scripts\build-tui.ps1
 
 # Run
-./target/release/win11-optimizer
+.\win11-optimizer-tui.exe
 ```
 
 ### Building from Source (PowerShell)
@@ -184,6 +160,9 @@ Install-Module -Name Pester -Force -Scope CurrentUser
 
 # Run unit tests
 Invoke-Pester -Path ./tests -OutputFormat NUnitXml -OutputFile test-results.xml
+
+# Run IPC smoke tests
+.\scripts\test-ipc.ps1
 ```
 
 ## Security

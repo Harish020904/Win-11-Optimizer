@@ -10,12 +10,13 @@ param(
 $ErrorActionPreference = "Stop"
 
 # Configuration
-$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
+$projectRoot = Split-Path -Parent $PSScriptRoot
 if (-not $projectRoot) {
     $projectRoot = (Get-Location).Path
 }
 $distDir = Join-Path $projectRoot "dist"
-$binaryPath = Join-Path $projectRoot "target\release\win11-optimizer.exe"
+$binaryName = "win11-optimizer-tui.exe"
+$binaryPath = Join-Path $projectRoot $binaryName
 
 # Validate version format
 if ($Version -notmatch '^v?\d+\.\d+\.\d+') {
@@ -35,8 +36,8 @@ Write-Host "======================================" -ForegroundColor Cyan
 if (-not (Test-Path $binaryPath)) {
     # Try alternative paths
     $altPaths = @(
-        "target\x86_64-pc-windows-msvc\release\win11-optimizer.exe",
-        "win11-optimizer.exe"
+        "tui\target\release\$binaryName",
+        "tui\target\x86_64-pc-windows-msvc\release\$binaryName"
     )
     
     $found = $false
@@ -51,7 +52,7 @@ if (-not (Test-Path $binaryPath)) {
     
     if (-not $found) {
         Write-Host "ERROR: Binary not found at expected path: $binaryPath" -ForegroundColor Red
-        Write-Host "Run 'cargo build --release' first" -ForegroundColor Yellow
+        Write-Host "Run '.\scripts\build-tui.ps1' first" -ForegroundColor Yellow
         exit 1
     }
 }
@@ -67,9 +68,16 @@ New-Item -ItemType Directory -Path $distDir -Force | Out-Null
 Write-Host "Created dist directory: $distDir" -ForegroundColor Gray
 
 # Copy binary
-$destBinary = Join-Path $distDir "win11-optimizer.exe"
+$destBinary = Join-Path $distDir $binaryName
 Copy-Item $binaryPath $destBinary
 Write-Host "  Copied binary" -ForegroundColor Green
+
+# Copy IPC dispatcher
+$dispatcherPath = Join-Path $projectRoot "WinOptimizer.ps1"
+if (Test-Path $dispatcherPath) {
+    Copy-Item $dispatcherPath $distDir
+    Write-Host "  Copied IPC dispatcher" -ForegroundColor Green
+}
 
 # Copy modules
 $modulesPath = Join-Path $projectRoot "modules"
@@ -96,7 +104,7 @@ foreach ($doc in $docFiles) {
 Write-Host "  Copied documentation" -ForegroundColor Green
 
 # Create zip archive
-$zipName = "win11-optimizer-$Version-windows-x64.zip"
+$zipName = "win11-optimizer-tui-$Version-windows-x64.zip"
 $zipPath = Join-Path $projectRoot $zipName
 
 # Remove existing zip if present
@@ -125,8 +133,8 @@ Write-Host "  Computed checksum: $hash" -ForegroundColor Green
 
 # Also compute checksum for the raw binary
 $binaryHash = (Get-FileHash -Path $destBinary -Algorithm SHA256).Hash.ToLower()
-$binaryChecksumFile = Join-Path $projectRoot "win11-optimizer.exe.sha256"
-"$binaryHash  win11-optimizer.exe" | Out-File -FilePath $binaryChecksumFile -Encoding utf8 -NoNewline
+$binaryChecksumFile = Join-Path $projectRoot "$binaryName.sha256"
+"$binaryHash  $binaryName" | Out-File -FilePath $binaryChecksumFile -Encoding utf8 -NoNewline
 
 Write-Host "  Binary checksum: $binaryHash" -ForegroundColor Green
 

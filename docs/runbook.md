@@ -18,10 +18,10 @@ Operations guide for using Win11 Optimizer safely and effectively.
 cd C:\Win11Optimizer
 
 # Run as Administrator
-.\runtime\godmode.ps1
+.\win11-optimizer-tui.exe
 
-# Or use CLI directly
-.\runtime\godmode.ps1 --manifest runtime\manifests\minimal.yaml --preview
+# Plaintext fallback if the TUI binary is unavailable
+.\WinOptimizer.ps1
 ```
 
 ## Layer-by-Layer Guide

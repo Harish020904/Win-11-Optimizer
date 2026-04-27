@@ -1,4 +1,5 @@
 target/
+tui/target/
 docs/
 image.png
 image2.png
@@ -11,3 +12,4 @@ REVIEW_SUMMARY.md
 # Prevent local Windows log files from being committed
 C:/ProgramData/
 **/logs/*.log
+.winoptimizer-data/
